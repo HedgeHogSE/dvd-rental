@@ -1,27 +1,14 @@
 import { Navigate } from 'react-router-dom';
+import { useAuthSession } from './Auth/AuthSession';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const { user, loading, error, isAdmin, isStaff } = useAuthSession();
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+  if (loading) return <p role="status">Загрузка профиля…</p>;
+  if (error) return <p role="alert">Не удалось загрузить профиль. Обновите страницу, чтобы повторить запрос.</p>;
+  if (!user) return <Navigate to="/login" replace />;
 
-  const userRoles = user.roles?.map(r => r.name) || [];
-
-  if (!requiredRole) {
-    return children;
-  }
-
-  if (requiredRole === 'employee') {
-    if (!userRoles.includes('admin') && !userRoles.includes('employee')) {
-      return <Navigate to="/" replace />;
-    }
-    return children;
-  }
-
-  if (!userRoles.includes(requiredRole)) {
+  if ((requiredRole === 'admin' && !isAdmin) || (requiredRole === 'employee' && !isStaff)) {
     return <Navigate to="/" replace />;
   }
 

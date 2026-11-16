@@ -89,7 +89,7 @@ const DVDManage = () => {
   };
 
   if (loading && dvds.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
@@ -100,7 +100,7 @@ const DVDManage = () => {
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
+        <div style={{ background: 'var(--wash)', padding: '20px', marginBottom: '20px', borderRadius: '3px' }}>
           <h3>{editingDvd ? 'Редактировать DVD' : 'Добавить DVD'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '10px' }}>
@@ -152,10 +152,10 @@ const DVDManage = () => {
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
               />
             </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
               {editingDvd ? 'Сохранить' : 'Добавить'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: 'var(--muted)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
               Отмена
             </button>
           </form>
@@ -166,29 +166,29 @@ const DVDManage = () => {
         <p>DVD не найдены</p>
       ) : (
         <>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll">
+            <table>
               <thead>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Инв. номер</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Цена/день</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+                <tr>
+                  <th>Инв. номер</th>
+                  <th>Фильм</th>
+                  <th>Статус</th>
+                  <th>Цена/день</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {dvds.map(dvd => (
                   <tr key={dvd.id}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.inventory_number}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.movie?.title || '-'}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.status}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.price_per_day} ₽</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                      <button onClick={() => handleEdit(dvd)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                    <td>{dvd.inventory_number}</td>
+                    <td>{dvd.movie?.title || '-'}</td>
+                    <td>{dvd.status}</td>
+                    <td>{dvd.price_per_day} ₽</td>
+                    <td>
+                      <button onClick={() => handleEdit(dvd)} style={{ marginRight: '5px', padding: '5px 10px', background: 'var(--warning-bg)', border: 'none', cursor: 'pointer' }}>
                         Ред.
                       </button>
-                      <button onClick={() => handleDelete(dvd.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                      <button onClick={() => handleDelete(dvd.id)} style={{ padding: '5px 10px', background: 'var(--danger)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
                         Удалить
                       </button>
                     </td>
@@ -198,7 +198,7 @@ const DVDManage = () => {
             </table>
           </div>
           {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <div className="pagination">
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
               <span>{meta.current_page} из {meta.last_page}</span>
               <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>

@@ -75,7 +75,7 @@ const BlockManage = () => {
   };
 
   if (loading && blocks.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
@@ -86,7 +86,7 @@ const BlockManage = () => {
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
+        <div style={{ background: 'var(--wash)', padding: '20px', marginBottom: '20px', borderRadius: '3px' }}>
           <h3>Создать блокировку</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '10px' }}>
@@ -121,12 +121,12 @@ const BlockManage = () => {
                 onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
                 style={{ width: '100%', padding: '8px', marginTop: '5px' }}
               />
-              <small style={{ color: '#666' }}>Оставьте пустым для постоянной блокировки</small>
+              <small style={{ color: 'var(--muted)' }}>Оставьте пустым для постоянной блокировки</small>
             </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--danger)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
               Заблокировать
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: 'var(--muted)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
               Отмена
             </button>
           </form>
@@ -137,28 +137,28 @@ const BlockManage = () => {
         <p>Активные блокировки не найдены</p>
       ) : (
         <>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll">
+            <table>
               <thead>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Пользователь</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Причина</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Срок</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+                <tr>
+                  <th>Пользователь</th>
+                  <th>Причина</th>
+                  <th>Срок</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {blocks.map(block => (
                   <tr key={block.id}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{block.user?.name} ({block.user?.email})</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{block.reason}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                    <td>{block.user?.name} ({block.user?.email})</td>
+                    <td>{block.reason}</td>
+                    <td>
                       {block.expires_at 
                         ? new Date(block.expires_at).toLocaleDateString() 
-                        : <span style={{ color: 'red' }}>Постоянная</span>}
+                        : <span style={{ color: 'var(--danger)' }}>Постоянная</span>}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                      <button onClick={() => handleDelete(block.id)} style={{ padding: '5px 10px', background: '#28a745', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    <td>
+                      <button onClick={() => handleDelete(block.id)} style={{ padding: '5px 10px', background: 'var(--success)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
                         Снять
                       </button>
                     </td>
@@ -168,7 +168,7 @@ const BlockManage = () => {
             </table>
           </div>
           {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <div className="pagination">
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
               <span>{meta.current_page} из {meta.last_page}</span>
               <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>

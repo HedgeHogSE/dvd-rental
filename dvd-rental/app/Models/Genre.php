@@ -4,13 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable(['name'])]
 class Genre extends Model
 {
-    public function movies(): HasMany
+    public function movies(): BelongsToMany
     {
-        return $this->hasMany(Movie::class);
+        return $this->belongsToMany(Movie::class);
     }
 }

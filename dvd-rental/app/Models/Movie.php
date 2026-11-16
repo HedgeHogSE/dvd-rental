@@ -9,14 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['title', 'description', 'release_year', 'duration', 'genre_id'])]
+#[Fillable(['title', 'description', 'release_year', 'duration'])]
 class Movie extends Model
 {
     use HasFactory;
 
-    public function genre(): BelongsTo
+    public function genres(): BelongsToMany
     {
-        return $this->belongsTo(Genre::class);
+        return $this->belongsToMany(Genre::class);
     }
 
     public function dvds(): HasMany

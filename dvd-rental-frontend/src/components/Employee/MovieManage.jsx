@@ -1,20 +1,24 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 
+const emptyMovie = {
+  title: '',
+  description: '',
+  release_year: new Date().getFullYear(),
+  duration: 0,
+  genre_ids: [],
+};
+
 const MovieManage = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    release_year: new Date().getFullYear(),
-    duration: 0,
-    genre_id: ''
-  });
+  const [formData, setFormData] = useState(emptyMovie);
   const [genres, setGenres] = useState([]);
+  const [genresLoadError, setGenresLoadError] = useState('');
+  const [genreError, setGenreError] = useState('');
 
   // Пагинация
   const [page, setPage] = useState(1);
@@ -45,9 +49,13 @@ const MovieManage = () => {
   const fetchGenres = async () => {
     try {
       const response = await api.get('/genres', { params: { per_page: 100 } });
-      setGenres(response.data.data || []);
+      const pages = Array.from({ length: response.data.last_page - 1 }, (_, index) => index + 2);
+      const additionalPages = await Promise.all(
+        pages.map(page => api.get('/genres', { params: { page, per_page: 100 } }))
+      );
+      setGenres([...response.data.data, ...additionalPages.flatMap(result => result.data.data)]);
     } catch (error) {
-      console.error('Ошибка загрузки жанров:', error);
+      setGenresLoadError('Не удалось загрузить жанры.');
     }
   };
 
@@ -62,19 +70,34 @@ const MovieManage = () => {
   };
 
   const handleEdit = (movie) => {
+    setGenreError('');
     setEditingMovie(movie);
     setFormData({
       title: movie.title,
       description: movie.description || '',
       release_year: movie.release_year,
       duration: movie.duration,
-      genre_id: movie.genre_id.toString()
+      genre_ids: movie.genres.map(genre => genre.id),
     });
     setShowForm(true);
   };
 
+  const toggleGenre = (id) => {
+    setGenreError('');
+    setFormData(current => ({
+      ...current,
+      genre_ids: current.genre_ids.includes(id)
+        ? current.genre_ids.filter(genreId => genreId !== id)
+        : [...current.genre_ids, id],
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.genre_ids.length === 0) {
+      setGenreError('Выберите хотя бы один жанр.');
+      return;
+    }
     try {
       if (editingMovie) {
         await api.put(`/movies/${editingMovie.id}`, formData);
@@ -83,7 +106,7 @@ const MovieManage = () => {
       }
       setShowForm(false);
       setEditingMovie(null);
-      setFormData({ title: '', description: '', release_year: new Date().getFullYear(), duration: 0, genre_id: '' });
+      setFormData(emptyMovie);
       fetchMovies(page);
     } catch (error) {
       alert(error.response?.data?.message || 'Ошибка сохранения');
@@ -91,18 +114,23 @@ const MovieManage = () => {
   };
 
   if (loading && movies.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
       <h1>Управление фильмами</h1>
       
-      <button onClick={() => { setShowForm(true); setEditingMovie(null); }} style={{ marginBottom: '20px', padding: '10px' }}>
+      <button onClick={() => {
+        setFormData(emptyMovie);
+        setGenreError('');
+        setEditingMovie(null);
+        setShowForm(true);
+      }} style={{ marginBottom: '20px', padding: '10px' }}>
         + Добавить фильм
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
+        <div style={{ background: 'var(--wash)', padding: '20px', marginBottom: '20px', borderRadius: '3px' }}>
           <h3>{editingMovie ? 'Редактировать фильм' : 'Добавить фильм'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '10px' }}>
@@ -148,24 +176,30 @@ const MovieManage = () => {
                 />
               </div>
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Жанр:</label>
-              <select
-                value={formData.genre_id}
-                onChange={(e) => setFormData({ ...formData, genre_id: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-              >
-                <option value="">Выберите жанр</option>
-                {genres.map(genre => (
-                  <option key={genre.id} value={genre.id}>{genre.name}</option>
-                ))}
-              </select>
-            </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <fieldset className="movie-genres">
+              <legend>Жанры</legend>
+              {genresLoadError ? (
+                <p className="error-message" role="alert">{genresLoadError}</p>
+              ) : genres.length > 0 ? (
+                <div className="movie-genre-options">
+                  {genres.map(genre => (
+                    <label key={genre.id} className="check-label">
+                      <input
+                        type="checkbox"
+                        checked={formData.genre_ids.includes(genre.id)}
+                        onChange={() => toggleGenre(genre.id)}
+                      />
+                      {genre.name}
+                    </label>
+                  ))}
+                </div>
+              ) : <p>Жанры пока недоступны.</p>}
+              {genreError && <p className="error-message" role="alert">{genreError}</p>}
+            </fieldset>
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--accent)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
               {editingMovie ? 'Сохранить' : 'Добавить'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: 'var(--muted)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
               Отмена
             </button>
           </form>
@@ -176,29 +210,29 @@ const MovieManage = () => {
         <p>Фильмы не найдены</p>
       ) : (
         <>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll">
+            <table>
               <thead>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Название</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Жанр</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Год</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Длительность</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+                <tr>
+                  <th>Название</th>
+                  <th>Жанры</th>
+                  <th>Год</th>
+                  <th>Длительность</th>
+                  <th>Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {movies.map(movie => (
                   <tr key={movie.id}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.title}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.genre?.name || '-'}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.release_year}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.duration} мин</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                      <button onClick={() => handleEdit(movie)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                    <td>{movie.title}</td>
+                    <td>{movie.genres.map(genre => genre.name).join(', ') || '—'}</td>
+                    <td>{movie.release_year}</td>
+                    <td>{movie.duration} мин</td>
+                    <td>
+                      <button onClick={() => handleEdit(movie)} style={{ marginRight: '5px', padding: '5px 10px', background: 'var(--warning-bg)', border: 'none', cursor: 'pointer' }}>
                         Ред.
                       </button>
-                      <button onClick={() => handleDelete(movie.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                      <button onClick={() => handleDelete(movie.id)} style={{ padding: '5px 10px', background: 'var(--danger)', color: 'var(--surface)', border: 'none', cursor: 'pointer' }}>
                         Удалить
                       </button>
                     </td>
@@ -208,7 +242,7 @@ const MovieManage = () => {
             </table>
           </div>
           {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <div className="pagination">
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
               <span>{meta.current_page} из {meta.last_page}</span>
               <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>

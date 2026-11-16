@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuthSession } from './AuthSession';
 import api from '../../services/api';
 
 const Register = () => {
+  const { signIn } = useAuthSession();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,9 +20,8 @@ const Register = () => {
 
     try {
       const response = await api.post('/register', { name, email, password, phone });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/');
+      signIn(response.data);
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка регистрации');
     } finally {
@@ -29,58 +30,46 @@ const Register = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto' }}>
-      <h2>Регистрация</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            Имя:
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            />
-          </label>
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            Email:
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            />
-          </label>
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            Пароль:
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength="8"
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            />
-          </label>
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
-            Телефон (опционально):
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-            />
-          </label>
-        </div>
-        {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+    <section className="auth-panel">
+      <h1>Регистрация</h1>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label>
+          Имя:
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Email:
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </label>
+        <label>
+          Пароль:
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength="8"
+          />
+        </label>
+        <label>
+          Телефон (опционально):
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </label>
+        {error && <div style={{ color: 'var(--danger)', marginBottom: '15px' }}>{error}</div>}
         <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px' }}>
           {loading ? 'Регистрация...' : 'Зарегистрироваться'}
         </button>
@@ -88,7 +77,7 @@ const Register = () => {
       <p style={{ marginTop: '15px' }}>
         Есть аккаунт? <Link to="/login">Войти</Link>
       </p>
-    </div>
+    </section>
   );
 };
 

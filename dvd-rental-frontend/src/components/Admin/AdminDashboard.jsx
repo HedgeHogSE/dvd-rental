@@ -44,38 +44,20 @@ const AdminDashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, color }) => (
-    <div style={{
-      background: '#fff',
-      padding: '20px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      textAlign: 'center'
-    }}>
-      <h3 style={{ color: color, margin: '0 0 10px 0' }}>{title}</h3>
-      <p style={{ fontSize: '32px', fontWeight: 'bold', margin: 0 }}>{value}</p>
-    </div>
-  );
-
   if (loading) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
       <h1>Панель администратора</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <StatCard title="Всего пользователей" value={stats.totalUsers} color="#007bff" />
-        <StatCard title="Всего фильмов" value={stats.totalMovies} color="#28a745" />
-        <StatCard title="Всего DVD" value={stats.totalDVDs} color="#17a2b8" />
-        <StatCard title="Активных аренд" value={stats.activeRentals} color="#ffc107" />
-        <StatCard title="Активных блокировок" value={stats.activeBlocks} color="#dc3545" />
-      </div>
-
-      <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-        <h2>Общая информация</h2>
-        <p>Система видеопроката DVD-дисков функционирует в штатном режиме.</p>
-      </div>
+      <dl className="dashboard-stats">
+        <div><dt>Пользователи</dt><dd>{stats.totalUsers}</dd></div>
+        <div><dt>Фильмы</dt><dd>{stats.totalMovies}</dd></div>
+        <div><dt>DVD</dt><dd>{stats.totalDVDs}</dd></div>
+        <div><dt>Аренды</dt><dd>{stats.activeRentals}</dd></div>
+        <div><dt>Блокировки</dt><dd>{stats.activeBlocks}</dd></div>
+      </dl>
     </div>
   );
 };

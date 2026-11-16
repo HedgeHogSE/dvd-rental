@@ -37,38 +37,38 @@ const MyWishlist = () => {
   };
 
   if (loading && movies.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
-      <h1>Мой список желаемого</h1>
+      <h1>Избранное</h1>
       
       {movies.length === 0 ? (
         <p>Ваш список пуст. Добавляйте фильмы со страницы фильма.</p>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
+          <div className="movie-grid">
             {movies.map(movie => (
-              <div key={movie.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
+              <article key={movie.id} className="movie-card">
                 <h3>{movie.title}</h3>
-                <p><strong>Жанр:</strong> {movie.genre?.name || '-'}</p>
+                <p><strong>Жанры:</strong> {movie.genres.map(genre => genre.name).join(', ') || '-'}</p>
                 <p><strong>Год:</strong> {movie.release_year}</p>
                 <p><strong>Рейтинг:</strong> {movie.reviews_avg_rating ? `${Number(movie.reviews_avg_rating).toFixed(1)} / 10` : 'Нет оценок'}</p>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                  <Link to={`/movies/${movie.id}`} style={{ padding: '5px 10px', background: '#007bff', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}>
+                <div className="wishlist-actions">
+                  <Link to={`/movies/${movie.id}`} style={{ padding: '5px 10px', background: 'var(--accent)', color: 'var(--surface)', textDecoration: 'none', borderRadius: '4px' }}>
                     Подробнее
                   </Link>
-                  <button onClick={() => removeFromWishlist(movie.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                  <button onClick={() => removeFromWishlist(movie.id)} style={{ padding: '5px 10px', background: 'var(--danger)', color: 'var(--surface)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
                     Удалить
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
 
           {/* Пагинация */}
           {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center' }}>
+            <div className="pagination">
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
               <span>Страница {meta.current_page} из {meta.last_page}</span>
               <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>

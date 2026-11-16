@@ -30,7 +30,7 @@ const MyRentals = () => {
   };
 
   if (loading && rentals.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
@@ -40,38 +40,40 @@ const MyRentals = () => {
         <p>У вас нет аренд</p>
       ) : (
         <>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll">
+            <table>
               <thead>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>DVD</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Дата выдачи</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Дата возврата</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Стоимость</th>
+                <tr>
+                  <th>DVD</th>
+                  <th>Фильм</th>
+                  <th>Дата выдачи</th>
+                  <th>Вернуть до</th>
+                  <th>Фактический возврат</th>
+                  <th>Статус</th>
+                  <th>Стоимость</th>
                 </tr>
               </thead>
               <tbody>
                 {rentals.map(rental => (
                   <tr key={rental.id}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{rental.dvd?.inventory_number}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{rental.dvd?.movie?.title}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                    <td>{rental.dvd?.inventory_number}</td>
+                    <td>{rental.dvd?.movie?.title}</td>
+                    <td>
                       {rental.issued_at ? new Date(rental.issued_at).toLocaleDateString() : '-'}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                    <td>{rental.due_on ?? '—'}</td>
+                    <td>
                       {rental.returned_at ? new Date(rental.returned_at).toLocaleDateString() : '-'}
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                    <td>
                       <span style={{ 
-                        color: rental.status === 'active' ? 'green' : 'blue',
+                        color: rental.status === 'active' ? 'var(--success)' : 'blue',
                         fontWeight: 'bold'
                       }}>
                         {rental.status === 'active' ? 'Активна' : 'Возвращена'}
                       </span>
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{rental.price} ₽</td>
+                    <td>{rental.price} ₽</td>
                   </tr>
                 ))}
               </tbody>
@@ -80,7 +82,7 @@ const MyRentals = () => {
 
           {/* Пагинация */}
           {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center' }}>
+            <div className="pagination">
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '5px 15px' }}>Назад</button>
               <span>Страница {meta.current_page} из {meta.last_page}</span>
               <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)} style={{ padding: '5px 15px' }}>Вперёд</button>

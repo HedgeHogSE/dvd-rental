@@ -12,7 +12,7 @@ const ReturnDVD = () => {
 
   const fetchActiveRentals = async () => {
     try {
-      const response = await api.get('/rentals', { params: { status: 'active', per_page: 100 } });
+      const response = await api.get('/rentals', { params: { open: true, per_page: 100 } });
       setRentals(response.data.data || []);
     } catch (error) { console.error(error); }
   };
@@ -30,7 +30,7 @@ const ReturnDVD = () => {
     } finally { setLoading(false); }
   };
 
-  if (success) return <div><h2 style={{ color: 'green' }}>DVD успешно возвращён!</h2></div>;
+  if (success) return <div><h2 style={{ color: 'var(--success)' }}>DVD успешно возвращён!</h2></div>;
 
   return (
     <div>
@@ -43,7 +43,7 @@ const ReturnDVD = () => {
             {rentals.map(r => <option key={r.id} value={r.id}>#{r.id} - {r.user?.name} - {r.dvd?.inventory_number} - {r.dvd?.movie?.title} - {r.price} ₽</option>)}
           </select>
         </div>
-        {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
+        {error && <div style={{ color: 'var(--danger)', marginBottom: '15px' }}>{error}</div>}
         <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px' }}>{loading ? 'Обработка...' : 'Оформить возврат'}</button>
       </form>
     </div>

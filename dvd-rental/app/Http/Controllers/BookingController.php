@@ -5,14 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Block;
 use App\Models\Booking;
 use App\Models\Dvd;
-use App\Models\Rental;
+use App\Models\Movie;
 use App\Notifications\BookingCancelled;
 use App\Notifications\BookingConfirmed;
+use App\Notifications\WishlistAvailable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use App\Models\Movie;
-use App\Notifications\WishlistAvailable;
 
 class BookingController extends Controller
 {
@@ -69,8 +68,8 @@ class BookingController extends Controller
 
         $validated = $request->validate([
             'dvd_id' => 'required|exists:dvds,id',
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            'start_date' => 'required|date_format:Y-m-d|after_or_equal:today',
+            'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date',
         ]);
 
         try {
@@ -78,36 +77,7 @@ class BookingController extends Controller
 
                 $dvd = Dvd::where('id', $validated['dvd_id'])->lockForUpdate()->firstOrFail();
 
-                if ($dvd->status === 'unavailable') {
-                    throw ValidationException::withMessages([
-                        'dvd_id' => ['Данный DVD недоступен для бронирования (статус: unavailable).'],
-                    ]);
-                }
-
-                $hasBookingConflict = Booking::where('dvd_id', $dvd->id)
-                    ->where('status', 'active')
-                    ->where(function ($query) use ($validated) {
-                        $query->where('start_date', '<=', $validated['end_date'])
-                            ->where('end_date', '>=', $validated['start_date']);
-                    })
-                    ->exists();
-
-                if ($hasBookingConflict) {
-                    throw ValidationException::withMessages([
-                        'dvd_id' => ['DVD уже забронирован на выбранный период.'],
-                    ]);
-                }
-
-                $hasRentalConflict = Rental::where('dvd_id', $dvd->id)
-                    ->where('status', 'active')
-                    ->whereNull('returned_at')
-                    ->exists();
-
-                if ($hasRentalConflict) {
-                    throw ValidationException::withMessages([
-                        'dvd_id' => ['DVD в данный момент находится в аренде.'],
-                    ]);
-                }
+                $this->ensurePeriodAvailable($dvd, $validated['start_date'], $validated['end_date']);
 
                 $newBooking = Booking::create([
                     'user_id' => $user->id,
@@ -117,7 +87,7 @@ class BookingController extends Controller
                     'status' => 'active',
                 ]);
 
-                $dvd->update(['status' => 'reserved']);
+                $dvd->refreshCirculationStatus();
 
                 return $newBooking;
             });
@@ -156,38 +126,7 @@ class BookingController extends Controller
             'status' => 'required|string|in:active,cancelled,completed',
         ]);
 
-        DB::transaction(function () use ($booking, $validated) {
-            $booking->update(['status' => $validated['status']]);
-
-            if ($validated['status'] === 'cancelled') {
-                $hasOtherActiveBookings = Booking::where('dvd_id', $booking->dvd_id)
-                    ->where('id', '!=', $booking->id)
-                    ->where('status', 'active')
-                    ->exists();
-
-                if (!$hasOtherActiveBookings) {
-                    Dvd::where('id', $booking->dvd_id)->update(['status' => 'available']);
-                }
-
-                $movieId = $booking->dvd->movie_id;
-                $wishlistedUsers = \App\Models\User::whereHas('wishlist', function ($query) use ($movieId) {
-                    $query->where('movie_id', $movieId)
-                        ->whereNull('movie_user_wishlist.notified_at');
-                })->get();
-
-                if ($wishlistedUsers->isNotEmpty()) {
-                    $movie = Movie::find($movieId);
-                    foreach ($wishlistedUsers as $u) {
-                        $u->notify(new WishlistAvailable($movie));
-                        $u->wishlist()->updateExistingPivot($movieId, ['notified_at' => now()]);
-                    }
-                }
-            }
-        });
-
-        if ($validated['status'] === 'cancelled') {
-            $booking->user->notify(new BookingCancelled($booking));
-        }
+        $this->changeStatus($booking, $validated['status']);
 
         return response()->json([
             'message' => 'Статус бронирования успешно обновлен',
@@ -198,39 +137,80 @@ class BookingController extends Controller
     public function destroy(Request $request, Booking $booking)
     {
         $this->authorize('delete', $booking);
-
-        DB::transaction(function () use ($booking) {
-            $booking->update(['status' => 'cancelled']);
-
-            $hasOtherActiveBookings = Booking::where('dvd_id', $booking->dvd_id)
-                ->where('id', '!=', $booking->id)
-                ->where('status', 'active')
-                ->exists();
-
-            if (!$hasOtherActiveBookings) {
-                Dvd::where('id', $booking->dvd_id)->update(['status' => 'available']);
-            }
-
-            $movieId = $booking->dvd->movie_id;
-            $wishlistedUsers = \App\Models\User::whereHas('wishlist', function ($query) use ($movieId) {
-                $query->where('movie_id', $movieId)
-                    ->whereNull('movie_user_wishlist.notified_at');
-            })->get();
-
-            if ($wishlistedUsers->isNotEmpty()) {
-                $movie = Movie::find($movieId);
-                foreach ($wishlistedUsers as $u) {
-                    $u->notify(new WishlistAvailable($movie));
-                    $u->wishlist()->updateExistingPivot($movieId, ['notified_at' => now()]);
-                }
-            }
-        });
-
-        $booking->user->notify(new BookingCancelled($booking));
+        $this->changeStatus($booking, 'cancelled');
 
         return response()->json([
             'message' => 'Бронирование успешно отменено',
             'booking' => $booking,
         ], 200);
+    }
+
+    private function changeStatus(Booking $booking, string $status): void
+    {
+        $cancelled = DB::transaction(function () use ($booking, $status) {
+            $dvd = Dvd::query()->lockForUpdate()->findOrFail($booking->dvd_id);
+            $booking->refresh();
+
+            if ($booking->status === $status) {
+                return false;
+            }
+
+            if ($booking->rental()->exists()) {
+                throw ValidationException::withMessages([
+                    'status' => ['По этому бронированию уже оформлена аренда.'],
+                ]);
+            }
+
+            if ($status === 'active') {
+                if ($booking->end_date < today()->toDateString()) {
+                    throw ValidationException::withMessages([
+                        'status' => ['Период бронирования уже завершился.'],
+                    ]);
+                }
+
+                $this->ensurePeriodAvailable($dvd, $booking->start_date, $booking->end_date);
+            }
+
+            $booking->update(['status' => $status]);
+            $dvd->refreshCirculationStatus();
+
+            if ($status === 'cancelled' && in_array($dvd->status, ['available', 'reserved'], true)
+                && !$dvd->overlappingBookings(today()->toDateString(), today()->toDateString())->exists()) {
+                $movie = Movie::findOrFail($dvd->movie_id);
+                $wishlistedUsers = $movie->wishlistedBy()->wherePivotNull('notified_at')->get();
+                foreach ($wishlistedUsers as $user) {
+                    $user->notify(new WishlistAvailable($movie));
+                    $user->wishlist()->updateExistingPivot($movie->id, ['notified_at' => now()]);
+                }
+            }
+
+            return $status === 'cancelled';
+        });
+
+        if ($cancelled) {
+            $booking->user->notify(new BookingCancelled($booking));
+        }
+    }
+
+    private function ensurePeriodAvailable(Dvd $dvd, string $start, string $end): void
+    {
+        if ($dvd->status === 'unavailable') {
+            throw ValidationException::withMessages(['dvd_id' => ['Этот DVD недоступен для бронирования.']]);
+        }
+
+        $conflict = $dvd->overlappingBookings($start, $end)->orderBy('start_date')->first();
+        if ($conflict !== null) {
+            throw ValidationException::withMessages([
+                'start_date' => ["DVD уже забронирован с {$conflict->start_date} по {$conflict->end_date}."],
+            ]);
+        }
+
+        $rental = $dvd->rentalPeriod();
+        if ($rental !== null && ($rental['end_date'] === null || $start <= $rental['end_date'])) {
+            $message = $rental['end_date'] === null
+                ? 'DVD находится в аренде без подтверждённой даты возврата. Дождитесь возврата.'
+                : "DVD в аренде до {$rental['end_date']} включительно.";
+            throw ValidationException::withMessages(['start_date' => [$message]]);
+        }
     }
 }

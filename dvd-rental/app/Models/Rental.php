@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['user_id', 'dvd_id', 'booking_id', 'issued_at', 'returned_at', 'status', 'price'])]
+#[Fillable(['user_id', 'dvd_id', 'booking_id', 'issued_at', 'due_on', 'returned_at', 'status', 'price'])]
 class Rental extends Model
 {
     public function user(): BelongsTo

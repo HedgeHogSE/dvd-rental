@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthSession } from './AuthSession';
 import api from '../../services/api';
 
 const Login = () => {
+  const { signIn } = useAuthSession();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,25 +15,30 @@ const Login = () => {
     setError('');
     try {
       const response = await api.post('/login', { email, password });
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      window.location.href = '/'; // <--- ЖЕЛЕЗОБЕТОННАЯ ПЕРЕЗАГРУЗКА
+      signIn(response.data);
+      navigate('/', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || 'Ошибка входа');
     }
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto' }}>
-      <h2>Вход</h2>
-      <form onSubmit={handleSubmit}>
-        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px', marginBottom: '10px' }} />
-        <input type="password" placeholder="Пароль" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px', marginBottom: '10px' }} />
-        {error && <div style={{ color: 'red', marginBottom: '10px' }}>{error}</div>}
-        <button type="submit" style={{ width: '100%', padding: '10px' }}>Войти</button>
+    <section className="auth-panel">
+      <h1>Вход</h1>
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label>
+          Электронная почта
+          <input type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required />
+        </label>
+        <label>
+          Пароль
+          <input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
+        </label>
+        {error && <div className="error-message" role="alert">{error}</div>}
+        <button type="submit">Войти</button>
       </form>
-      <p>Нет аккаунта? <Link to="/register">Регистрация</Link></p>
-    </div>
+      <p>Нет аккаунта? <Link to="/register">Зарегистрироваться</Link></p>
+    </section>
   );
 };
 

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -19,18 +21,21 @@ class AuthController extends Controller
             'phone' => 'nullable|string|max:20',
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'phone' => $validated['phone'] ?? null,
-        ]);
+        [$user, $token] = DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'phone' => $validated['phone'] ?? null,
+            ]);
+            $user->roles()->attach(Role::firstOrCreate(['name' => 'client']));
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+            return [$user, $user->createToken('auth_token')->plainTextToken];
+        });
 
         return response()->json([
             'message' => 'Пользователь успешно зарегистрирован',
-            'user' => $user,
+            'user' => $user->load('roles'),
             'token' => $token,
         ], 201);
     }
@@ -42,13 +47,14 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (!Auth::attempt(['email' => $validated['email'], 'password' => $validated['password']])) {
+        $guard = Auth::guard('web');
+        if (!$guard->once(['email' => $validated['email'], 'password' => $validated['password']])) {
             throw ValidationException::withMessages([
                 'email' => ['Предоставленные учетные данные неверны.'],
             ]);
         }
 
-        $user = User::where('email', $validated['email'])->firstOrFail();
+        $user = $guard->user()->load('roles');
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

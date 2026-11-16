@@ -10,10 +10,18 @@ class DvdController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Dvd::with('movie.genre');
+        $query = Dvd::with('movie.genres');
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
+        }
+
+        if ($request->boolean('bookable')) {
+            $query->where('status', '!=', 'unavailable');
+        }
+
+        if ($request->boolean('available_for_issue')) {
+            $query->availableForIssue();
         }
 
         if ($request->filled('movie_id')) {
@@ -42,13 +50,27 @@ class DvdController extends Controller
 
         return response()->json([
             'message' => 'DVD успешно добавлен',
-            'dvd' => $dvd->load('movie'),
+            'dvd' => $dvd->load('movie.genres'),
         ], 201);
+    }
+
+    public function availability(Dvd $dvd)
+    {
+        $today = today()->toDateString();
+        return response()->json([
+            'today' => $today,
+            'unavailable' => $dvd->status === 'unavailable',
+            'bookings' => $dvd->activeBookings()
+                ->where('end_date', '>=', $today)
+                ->orderBy('start_date')
+                ->get(['start_date', 'end_date']),
+            'rental' => $dvd->rentalPeriod(),
+        ]);
     }
 
     public function show(Dvd $dvd)
     {
-        return response()->json($dvd->load('movie.genre'), 200);
+        return response()->json($dvd->load('movie.genres'), 200);
     }
 
     public function update(Request $request, Dvd $dvd)
@@ -70,7 +92,7 @@ class DvdController extends Controller
 
         return response()->json([
             'message' => 'Информация о DVD успешно обновлена',
-            'dvd' => $dvd->load('movie'),
+            'dvd' => $dvd->load('movie.genres'),
         ], 200);
     }
 

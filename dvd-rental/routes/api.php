@@ -34,6 +34,7 @@ Route::get('/dvds/{dvd}', [DvdController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'me']);
+    Route::get('/dvds/{dvd}/availability', [DvdController::class, 'availability']);
 
     // --- Личный кабинет (Wishlist) ---
     Route::get('/me/wishlist', [WishlistController::class, 'index']);
@@ -46,16 +47,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/me/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
     Route::put('/me/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
 
-    // --- Управление контентом (только admin/employee) ---
-    Route::middleware('role:admin,employee')->group(function () {
-        Route::apiResource('roles', RoleController::class);
-        Route::apiResource('users', UserController::class);
+    Route::middleware('role:admin')->group(function () {
+        Route::apiResource('roles', RoleController::class)->only(['index', 'show']);
+        Route::apiResource('users', UserController::class)->except(['index']);
         Route::post('/users/{user}/roles', [UserController::class, 'assignRole']);
         Route::delete('/users/{user}/roles/{role}', [UserController::class, 'removeRole']);
+        Route::apiResource('blocks', BlockController::class)->except(['update']);
+    });
 
-        Route::post('/genres', [GenreController::class, 'store']);
-        Route::put('/genres/{genre}', [GenreController::class, 'update']);
-        Route::delete('/genres/{genre}', [GenreController::class, 'destroy']);
+    // --- Управление контентом (только admin/employee) ---
+    Route::middleware('role:admin,employee')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
 
         Route::post('/movies', [MovieController::class, 'store']);
         Route::put('/movies/{movie}', [MovieController::class, 'update']);
@@ -64,8 +66,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/dvds', [DvdController::class, 'store']);
         Route::put('/dvds/{dvd}', [DvdController::class, 'update']);
         Route::delete('/dvds/{dvd}', [DvdController::class, 'destroy']);
-
-        Route::apiResource('blocks', BlockController::class)->except(['update']);
 
         Route::put('/reviews/{review}/moderate', [ReviewController::class, 'moderate']);
     });

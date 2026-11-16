@@ -12,7 +12,7 @@ class WishlistController extends Controller
         $user = $request->user();
         
         $query = $user->wishlist()
-            ->with('genre')
+            ->with('genres')
             ->withAvg(['reviews' => function ($q) {
                 $q->where('status', 'published');
             }], 'rating');

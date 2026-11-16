@@ -1,129 +1,165 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // <-- Добавили useSearchParams
+import { useEffect, useState } from 'react';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
 
+const fieldStyle = { display: 'grid', gap: '5px', marginBottom: '15px' };
+
 const BookingForm = () => {
+  const [searchParams] = useSearchParams();
+  const [selectedDvdId, setSelectedDvdId] = useState(() => searchParams.get('dvd_id') ?? '');
   const [dvds, setDvds] = useState([]);
-  const [selectedDvdId, setSelectedDvdId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [schedule, setSchedule] = useState(null);
+  const [refresh, setRefresh] = useState(0);
+  const [catalogError, setCatalogError] = useState('');
+  const [scheduleError, setScheduleError] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const navigate = useNavigate();
-  
-  const [searchParams] = useSearchParams(); // <-- Получаем параметры из URL
-  const preselectedDvdId = searchParams.get('dvd_id'); // <-- Читаем dvd_id
 
   useEffect(() => {
-    fetchAvailableDVDs();
+    const controller = new AbortController();
+    const fetchPage = page => api.get('/dvds', {
+      params: { bookable: true, per_page: 100, page },
+      signal: controller.signal,
+    });
+
+    const loadDvds = async () => {
+      try {
+        const { data } = await fetchPage(1);
+        const pages = Array.from({ length: data.last_page - 1 }, (_, index) => index + 2);
+        const results = await Promise.all(pages.map(fetchPage));
+        if (!controller.signal.aborted) setDvds([...data.data, ...results.flatMap(result => result.data.data)]);
+      } catch {
+        if (!controller.signal.aborted) setCatalogError('Не удалось загрузить список DVD.');
+      }
+    };
+
+    loadDvds();
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    // Если в URL был передан dvd_id, устанавливаем его в форму
-    if (preselectedDvdId && dvds.length > 0) {
-      setSelectedDvdId(preselectedDvdId);
-    }
-  }, [preselectedDvdId, dvds]);
+    if (!selectedDvdId) return;
+    const controller = new AbortController();
 
-  const fetchAvailableDVDs = async () => {
-    try {
-      const response = await api.get('/dvds', { params: { status: 'available', per_page: 100 } });
-      setDvds(response.data.data);
-    } catch (error) {
-      setError('Ошибка загрузки DVD');
-    }
+    api.get(`/dvds/${selectedDvdId}/availability`, { signal: controller.signal })
+      .then(({ data }) => {
+        if (!controller.signal.aborted) setSchedule({ ...data, dvdId: selectedDvdId });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setScheduleError('Не удалось загрузить занятые даты.');
+      });
+
+    return () => controller.abort();
+  }, [selectedDvdId, refresh]);
+
+  const availability = schedule?.dvdId === selectedDvdId ? schedule : null;
+  const today = availability?.today ?? new Date().toLocaleDateString('sv-SE');
+  const conflict = availability?.bookings.find(period => (
+    startDate && endDate && period.start_date <= endDate && period.end_date >= startDate
+  ));
+  const rental = availability?.rental;
+  const rentalConflict = rental && (rental.end_date === null || (startDate && startDate <= rental.end_date));
+
+  const reloadSchedule = () => {
+    setSchedule(null);
+    setScheduleError('');
+    setRefresh(current => current + 1);
   };
 
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const changeDvd = (event) => {
+    setSelectedDvdId(event.target.value);
+    setSchedule(null);
+    setScheduleError('');
     setError('');
-    setSuccess(false);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
     setLoading(true);
 
     try {
-      await api.post('/bookings', {
-        dvd_id: selectedDvdId,
-        start_date: startDate,
-        end_date: endDate
-      });
+      await api.post('/bookings', { dvd_id: selectedDvdId, start_date: startDate, end_date: endDate });
       setSuccess(true);
-      setTimeout(() => navigate('/bookings'), 2000);
     } catch (error) {
-      // Бэкенд возвращает ошибки валидации в error.response.data.errors
-      // или общее сообщение в error.response.data.message
-      if (error.response?.data?.errors) {
-        const firstError = Object.values(error.response.data.errors)[0][0];
-        setError(firstError);
-      } else {
-        setError(error.response?.data?.message || 'Ошибка при создании бронирования');
-      }
+      const data = error.response?.data;
+      setError(Object.values(data?.errors ?? {}).flat()[0] || data?.message || 'Ошибка при создании бронирования');
+      reloadSchedule();
     } finally {
       setLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <div>
-        <h2 style={{ color: 'green' }}>Бронирование успешно создано!</h2>
-        <p>Переход на страницу бронирований...</p>
-      </div>
-    );
-  }
+  if (success) return <Navigate to="/bookings" replace />;
 
   return (
     <div>
       <h1>Создать бронирование</h1>
-      
-      <form onSubmit={handleSubmit} style={{ maxWidth: '400px' }}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>DVD:</label>
-          <select 
-            value={selectedDvdId} 
-            onChange={(e) => setSelectedDvdId(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px' }}
-          >
-            <option value="">Выберите DVD</option>
-            {dvds.map(dvd => (
-              <option key={dvd.id} value={dvd.id}>
-                {dvd.inventory_number} - {dvd.movie?.title} ({dvd.movie?.genre?.name}) - {dvd.price_per_day} ₽/день
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Дата начала:</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            required
-            min={new Date().toISOString().split('T')[0]}
-            style={{ width: '100%', padding: '8px' }}
-          />
-        </div>
-        
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Дата окончания:</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            required
-            min={startDate || new Date().toISOString().split('T')[0]}
-            style={{ width: '100%', padding: '8px' }}
-          />
-        </div>
-        
-        {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
-        
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px' }}>
-          {loading ? 'Создание...' : 'Создать бронирование'}
-        </button>
+      {catalogError && <p className="error-message" role="alert">{catalogError}</p>}
+      <form onSubmit={handleSubmit} style={{ maxWidth: '480px' }}>
+        <fieldset disabled={loading} style={{ border: 0, padding: 0, margin: 0 }}>
+          <label style={fieldStyle}>
+            DVD
+            <select value={selectedDvdId} onChange={changeDvd} required>
+              <option value="">Выберите DVD</option>
+              {selectedDvdId && !dvds.some(dvd => String(dvd.id) === selectedDvdId) && (
+                <option value={selectedDvdId}>DVD №{selectedDvdId}</option>
+              )}
+              {dvds.map(dvd => (
+                <option key={dvd.id} value={dvd.id}>
+                  {dvd.inventory_number} · {dvd.movie?.title} · {dvd.price_per_day} ₽/день
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {selectedDvdId && (
+            <section className="empty-state" style={{ marginBottom: '15px' }} aria-label="Доступность DVD">
+              <h2>Занятые даты</h2>
+              {scheduleError ? <p role="alert">{scheduleError}</p> : !availability ? (
+                <p role="status">Загрузка…</p>
+              ) : (
+                <>
+                  {availability.unavailable && <p>DVD недоступен для бронирования.</p>}
+                  {rental && <p>{rental.end_date === null
+                    ? 'DVD в аренде. Новые брони доступны после фактического возврата.'
+                    : `DVD в аренде до ${rental.end_date} включительно.`}</p>}
+                  {availability.bookings.length > 0 && (
+                    <ul>
+                      {availability.bookings.map(period => (
+                        <li key={`${period.start_date}-${period.end_date}`}>
+                          {period.start_date} — {period.end_date}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {!availability.unavailable && !rental && availability.bookings.length === 0 && <p>Занятых дат нет.</p>}
+                </>
+              )}
+              {(availability || scheduleError) && <button type="button" onClick={reloadSchedule}>Обновить даты</button>}
+            </section>
+          )}
+
+          <label style={fieldStyle}>
+            Дата начала
+            <input type="date" value={startDate} onInput={event => setStartDate(event.currentTarget.value)} required min={today} />
+          </label>
+          <label style={fieldStyle}>
+            Дата окончания
+            <input type="date" value={endDate} onInput={event => setEndDate(event.currentTarget.value)} required min={startDate || today} />
+          </label>
+
+          {conflict && <p className="error-message" role="status">Период пересекается с бронью {conflict.start_date} — {conflict.end_date}.</p>}
+          {rentalConflict && rental.end_date && <p className="error-message" role="status">Выберите дату после планового возврата.</p>}
+          {error && <p className="error-message" role="alert">{error}</p>}
+
+          <button type="submit" disabled={loading || !availability || availability.unavailable || Boolean(conflict) || Boolean(rentalConflict)}>
+            {loading ? 'Создание…' : 'Создать бронирование'}
+          </button>
+        </fieldset>
       </form>
     </div>
   );

@@ -7,6 +7,11 @@ use App\Models\User;
 
 class RentalPolicy
 {
+    public function create(User $user): bool
+    {
+        return $user->isStaff();
+    }
+
     public function view(User $user, Rental $rental): bool
     {
         return $user->id === $rental->user_id || $user->isStaff();

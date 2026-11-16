@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { useAuthSession } from '../Auth/AuthSession';
 
 const MovieDetail = () => {
   const { id } = useParams();
@@ -26,7 +27,7 @@ const MovieDetail = () => {
   const [editSaving, setEditSaving] = useState(false);
 
   // Текущий пользователь
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const { user: currentUser } = useAuthSession();
 
   const fetchMovie = useCallback(async () => {
     try {
@@ -147,81 +148,51 @@ const MovieDetail = () => {
 
   return (
     <div>
-      <Link to="/movies" style={{ display: 'block', marginBottom: '20px', color: '#007bff' }}>
-        ← Назад к списку
-      </Link>
+      <Link className="back-link" to="/movies">← К каталогу</Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header className="detail-heading">
         <div>
           <h1>{movie.title}</h1>
-          <p style={{ fontSize: '20px', color: '#ffc107', fontWeight: 'bold' }}>
-            ★ {movie.reviews_avg_rating ? `${formatRating(movie.reviews_avg_rating)} / 10` : 'Нет оценок'}
-            <span style={{ color: '#666', fontSize: '14px', fontWeight: 'normal', marginLeft: '10px' }}>
-              ({movie.reviews_count || 0} отзывов)
-            </span>
-          </p>
+          <div className="detail-meta">
+            {[movie.genres.map(genre => genre.name).join(', '), movie.release_year, movie.duration && `${movie.duration} мин`].filter(Boolean).join(' · ')}
+          </div>
         </div>
-
-        <button
-          onClick={toggleWishlist}
-          disabled={wishlistLoading}
-          style={{
-            padding: '10px 20px',
-            background: inWishlist ? '#dc3545' : '#007bff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          {inWishlist ? '♥ Убрать из желаемого' : '♡ В список желаемого'}
+        <button type="button" onClick={toggleWishlist} disabled={wishlistLoading}>
+          {inWishlist ? 'Убрать из избранного' : 'В избранное'}
         </button>
-      </div>
+      </header>
+      <p className="detail-meta">
+        {movie.reviews_avg_rating != null ? `${formatRating(movie.reviews_avg_rating)} / 10` : 'Нет оценок'}
+        {' · '}Отзывов: {movie.reviews_count || 0}
+      </p>
+      {movie.description && <p className="detail-description">{movie.description}</p>}
 
-      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '20px' }}>
-        <div style={{ flex: '2', minWidth: '300px' }}>
-          <p><strong>Жанр:</strong> {movie.genre?.name || 'Неизвестно'}</p>
-          <p><strong>Год выпуска:</strong> {movie.release_year}</p>
-          <p><strong>Длительность:</strong> {movie.duration} минут</p>
-          <p><strong>Описание:</strong></p>
-          <p>{movie.description}</p>
-        </div>
-      </div>
-
-      {/* Блок DVD */}
-      <div style={{ marginTop: '30px' }}>
+      <section className="detail-section">
         <h2>DVD этого фильма</h2>
-        {movie.dvds && movie.dvds.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
+        {movie.dvds?.length > 0 ? (
+          <ul className="disc-list">
             {movie.dvds.map(dvd => (
-              <div key={dvd.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
-                <p><strong>Инв. номер:</strong> {dvd.inventory_number}</p>
-                <p><strong>Статус:</strong>
-                  <span style={{ color: dvd.status === 'available' ? 'green' : 'red' }}>
-                    {dvd.status === 'available' ? 'Доступен' : 'Занят'}
-                  </span>
-                </p>
-                <p><strong>Цена за день:</strong> {dvd.price_per_day} ₽</p>
-
-                {dvd.status === 'available' && (
-                  <Link
-                    to={`/bookings/new?dvd_id=${dvd.id}`}
-                    style={{ display: 'inline-block', marginTop: '10px', padding: '5px 10px', background: '#007bff', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}
-                  >
-                    Забронировать
+              <li className="disc-row" key={dvd.id}>
+                <strong>{dvd.inventory_number}</strong>
+                <span style={{ color: dvd.status === 'available' ? 'var(--success)' : 'var(--muted)' }}>
+                  {{ available: 'Доступен', reserved: 'Есть брони', rented: 'В аренде', unavailable: 'Недоступен' }[dvd.status]}
+                </span>
+                <span>{dvd.price_per_day} ₽ в день</span>
+                {dvd.status !== 'unavailable' && (
+                  <Link className="button-link button-link-primary" to={`/bookings/new?dvd_id=${dvd.id}`}>
+                    Выбрать даты
                   </Link>
                 )}
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
-          <p>Для этого фильма нет DVD в наличии</p>
+          <p>Для этого фильма нет DVD в наличии.</p>
         )}
-      </div>
+      </section>
 
       {/* Блок Отзывов */}
-      <div style={{ marginTop: '40px', borderTop: '1px solid #ddd', paddingTop: '20px' }}>
+      <div className="detail-section">
         <h2>Отзывы</h2>
 
         {reviews.length === 0 ? (
@@ -235,7 +206,7 @@ const MovieDetail = () => {
               // Режим редактирования
               if (isEditing) {
                 return (
-                  <div key={review.id} style={{ background: '#fffbe6', padding: '15px', borderRadius: '8px', border: '1px solid #ffe58f' }}>
+                  <div key={review.id} style={{ background: 'var(--warning-bg)', padding: '15px', borderRadius: '3px', border: '1px solid var(--line)' }}>
                     <strong style={{ display: 'block', marginBottom: '10px' }}>
                       Редактирование отзыва
                     </strong>
@@ -260,12 +231,12 @@ const MovieDetail = () => {
                           style={{ width: '100%', minHeight: '80px', padding: '10px' }}
                         />
                       </div>
-                      {editError && <div style={{ color: 'red', marginBottom: '10px' }}>{editError}</div>}
+                      {editError && <div style={{ color: 'var(--danger)', marginBottom: '10px' }}>{editError}</div>}
                       <div style={{ display: 'flex', gap: '10px' }}>
                         <button
                           type="submit"
                           disabled={editSaving}
-                          style={{ padding: '8px 15px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: editSaving ? 'not-allowed' : 'pointer' }}
+                          style={{ padding: '8px 15px', background: 'var(--success)', color: 'var(--surface)', border: 'none', borderRadius: '4px', cursor: editSaving ? 'not-allowed' : 'pointer' }}
                         >
                           {editSaving ? 'Сохранение...' : 'Сохранить'}
                         </button>
@@ -273,7 +244,7 @@ const MovieDetail = () => {
                           type="button"
                           onClick={cancelEditing}
                           disabled={editSaving}
-                          style={{ padding: '8px 15px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px', cursor: editSaving ? 'not-allowed' : 'pointer' }}
+                          style={{ padding: '8px 15px', background: 'var(--muted)', color: 'var(--surface)', border: 'none', borderRadius: '4px', cursor: editSaving ? 'not-allowed' : 'pointer' }}
                         >
                           Отмена
                         </button>
@@ -285,26 +256,26 @@ const MovieDetail = () => {
 
               // Обычный режим просмотра
               return (
-                <div key={review.id} style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
+                <div key={review.id} style={{ background: 'var(--wash)', padding: '15px', borderRadius: '3px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                     <strong>{review.user?.name || 'Пользователь'}</strong>
-                    <span style={{ color: '#ffc107', fontWeight: 'bold' }}>★ {formatRating(review.rating)} / 10</span>
+                    <span style={{ color: 'var(--warning)', fontWeight: 'bold' }}>★ {formatRating(review.rating)} / 10</span>
                   </div>
                   <p style={{ margin: 0 }}>{review.text || 'Без текста'}</p>
-                  <small style={{ color: '#999' }}>{new Date(review.created_at).toLocaleDateString()}</small>
+                  <small style={{ color: 'var(--muted)' }}>{new Date(review.created_at).toLocaleDateString()}</small>
 
                   {/* Кнопки редактирования/удаления для собственного отзыва */}
                   {isOwn && (
                     <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
                       <button
                         onClick={() => startEditing(review)}
-                        style={{ padding: '3px 8px', background: '#ffc107', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ padding: '3px 8px', background: 'var(--warning-bg)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                       >
                         Редактировать
                       </button>
                       <button
                         onClick={() => handleDeleteReview(review.id)}
-                        style={{ padding: '3px 8px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ padding: '3px 8px', background: 'var(--danger)', color: 'var(--surface)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                       >
                         Удалить
                       </button>
@@ -326,9 +297,9 @@ const MovieDetail = () => {
         )}
 
         {/* Форма добавления отзыва */}
-        <div style={{ marginTop: '30px', background: '#e9ecef', padding: '20px', borderRadius: '8px' }}>
+        <div style={{ marginTop: '30px', background: 'var(--wash)', padding: '20px', borderRadius: '3px' }}>
           <h3>Оставить отзыв</h3>
-          <p style={{ fontSize: '12px', color: '#666' }}>Оставлять отзывы могут только те, кто брал этот фильм в аренду и вернул его.</p>
+          <p style={{ fontSize: '12px', color: 'var(--muted)' }}>Оставлять отзывы могут только те, кто брал этот фильм в аренду и вернул его.</p>
           <form onSubmit={handleReviewSubmit}>
             <div style={{ marginBottom: '10px' }}>
               <label>Оценка (1-10): </label>
@@ -350,9 +321,9 @@ const MovieDetail = () => {
                 style={{ width: '100%', minHeight: '80px', padding: '10px' }}
               />
             </div>
-            {reviewError && <div style={{ color: 'red', marginBottom: '10px' }}>{reviewError}</div>}
-            {reviewSuccess && <div style={{ color: 'green', marginBottom: '10px' }}>{reviewSuccess}</div>}
-            <button type="submit" style={{ padding: '10px 20px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            {reviewError && <div style={{ color: 'var(--danger)', marginBottom: '10px' }}>{reviewError}</div>}
+            {reviewSuccess && <div style={{ color: 'var(--success)', marginBottom: '10px' }}>{reviewSuccess}</div>}
+            <button type="submit" style={{ padding: '10px 20px', background: 'var(--success)', color: 'var(--surface)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
               Отправить отзыв
             </button>
           </form>

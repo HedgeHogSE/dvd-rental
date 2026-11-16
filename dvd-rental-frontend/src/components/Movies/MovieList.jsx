@@ -1,190 +1,168 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
+
+const defaultFilters = {
+  search: '',
+  genre_id: '',
+  year_from: '',
+  year_to: '',
+  rating_min: '',
+  available: false,
+  sort: 'created_at',
+  order: 'desc',
+};
 
 const MovieList = () => {
   const [movies, setMovies] = useState([]);
   const [genres, setGenres] = useState([]);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [query, setQuery] = useState({ filters: defaultFilters, page: 1 });
+  const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Параметры поиска
-  const [filters, setFilters] = useState({
-    search: '',
-    genre_id: '',
-    year_from: '',
-    year_to: '',
-    rating_min: '',
-    available: false,
-    sort: 'created_at',
-    order: 'desc',
-  });
-
-  // Пагинация
-  const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState(null);
 
   useEffect(() => {
-    fetchGenres();
+    api.get('/genres', { params: { per_page: 100 } })
+      .then(response => setGenres(response.data.data || []))
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
-    fetchMovies(page);
-  }, [page]);
+    const controller = new AbortController();
+    const activeFilters = Object.fromEntries(
+      Object.entries(query.filters).filter(([, value]) => value)
+    );
 
-  const fetchGenres = async () => {
-    try {
-      const response = await api.get('/genres', { params: { per_page: 100 } });
-      setGenres(response.data.data || []);
-    } catch (error) {
-      console.error('Ошибка загрузки жанров:', error);
-    }
-  };
-
-  const fetchMovies = async (currentPage = 1) => {
     setLoading(true);
     setError('');
-    try {
-      const params = { page: currentPage, per_page: 12 };
-      
-      // Добавляем только те параметры, которые заполнены
-      if (filters.search) params.search = filters.search;
-      if (filters.genre_id) params.genre_id = filters.genre_id;
-      if (filters.year_from) params.year_from = filters.year_from;
-      if (filters.year_to) params.year_to = filters.year_to;
-      if (filters.rating_min) params.rating_min = filters.rating_min;
-      if (filters.available) params.available = true;
-      if (filters.sort) params.sort = filters.sort;
-      if (filters.order) params.order = filters.order;
+    api.get('/movies', {
+      params: { ...activeFilters, page: query.page, per_page: 12 },
+      signal: controller.signal,
+    }).then(({ data }) => {
+      setMovies(data.data);
+      setMeta(data);
+    }).catch(() => {
+      if (!controller.signal.aborted) setError('Не удалось загрузить фильмы. Попробуйте позже.');
+    }).finally(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    });
 
-      const response = await api.get('/movies', { params });
-      setMovies(response.data.data);
-      setMeta(response.data);
-    } catch (error) {
-      setError('Не удалось загрузить фильмы. Попробуйте позже.');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    return () => controller.abort();
+  }, [query]);
+
+  const updateFilter = (event) => {
+    const { name, type, value, checked } = event.target;
+    setFilters(current => ({ ...current, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  const handleFilterChange = (field, value) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    setPage(1);
-    fetchMovies(1);
+  const submitFilters = (event) => {
+    event.preventDefault();
+    setQuery({ filters, page: 1 });
   };
 
   const resetFilters = () => {
-    setFilters({
-      search: '', genre_id: '', year_from: '', year_to: '',
-      rating_min: '', available: false, sort: 'created_at', order: 'desc'
-    });
-    setPage(1);
-    setTimeout(() => fetchMovies(1), 0);
+    setFilters(defaultFilters);
+    setQuery({ filters: defaultFilters, page: 1 });
   };
 
-  if (loading && movies.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  const changePage = (step) => {
+    setQuery(current => ({ ...current, page: current.page + step }));
+  };
 
   return (
-    <div>
-      <h1>Каталог фильмов</h1>
-      
-      {/* Форма расширенного поиска */}
-      <form onSubmit={handleSearchSubmit} style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
-        
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            placeholder="Поиск по названию или описанию..."
-            value={filters.search}
-            onChange={(e) => handleFilterChange('search', e.target.value)}
-            style={{ padding: '8px', flex: '2', minWidth: '200px' }}
-          />
-          <select 
-            value={filters.genre_id} 
-            onChange={(e) => handleFilterChange('genre_id', e.target.value)} 
-            style={{ padding: '8px', flex: '1' }}
-          >
-            <option value="">Все жанры</option>
-            {genres.map(genre => (
-              <option key={genre.id} value={genre.id}>{genre.name}</option>
-            ))}
-          </select>
-        </div>
+    <section>
+      <header className="catalog-heading">
+        <h1>Каталог фильмов</h1>
+        {meta && !loading && !error && <span>Найдено фильмов: {meta.total}</span>}
+      </header>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <label>Год от: 
-            <input type="number" placeholder="1980" value={filters.year_from} onChange={(e) => handleFilterChange('year_from', e.target.value)} style={{ padding: '5px', width: '80px', marginLeft: '5px' }} />
+      <form className="catalog-filters" onSubmit={submitFilters}>
+        <div className="search-row">
+          <label>
+            Поиск
+            <input type="search" name="search" placeholder="Название или описание" value={filters.search} onChange={updateFilter} />
           </label>
-          <label>до: 
-            <input type="number" placeholder="2024" value={filters.year_to} onChange={(e) => handleFilterChange('year_to', e.target.value)} style={{ padding: '5px', width: '80px', marginLeft: '5px' }} />
-          </label>
-          
-          <label>Рейтинг от: 
-            <input type="number" step="0.1" placeholder="7.0" value={filters.rating_min} onChange={(e) => handleFilterChange('rating_min', e.target.value)} style={{ padding: '5px', width: '60px', marginLeft: '5px' }} />
-          </label>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={filters.available} onChange={(e) => handleFilterChange('available', e.target.checked)} />
-            Только доступные
-          </label>
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-          <label>Сортировка:
-            <select value={filters.sort} onChange={(e) => handleFilterChange('sort', e.target.value)} style={{ padding: '5px', marginLeft: '5px' }}>
-              <option value="created_at">По дате добавления</option>
-              <option value="title">По названию</option>
-              <option value="release_year">По году</option>
-              <option value="reviews_avg_rating">По рейтингу</option>
+          <label>
+            Жанр
+            <select name="genre_id" value={filters.genre_id} onChange={updateFilter}>
+              <option value="">Все жанры</option>
+              {genres.map(genre => <option key={genre.id} value={genre.id}>{genre.name}</option>)}
             </select>
           </label>
-          <select value={filters.order} onChange={(e) => handleFilterChange('order', e.target.value)} style={{ padding: '5px' }}>
-            <option value="desc">По убыванию</option>
-            <option value="asc">По возрастанию</option>
-          </select>
+        </div>
 
-          <button type="submit" style={{ padding: '8px 15px', background: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Найти</button>
-          <button type="button" onClick={resetFilters} style={{ padding: '8px 15px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Сбросить</button>
+        <details className="advanced-filters">
+          <summary>Дополнительные фильтры</summary>
+          <div className="advanced-fields">
+            <label>Год от <input type="number" name="year_from" value={filters.year_from} onChange={updateFilter} /></label>
+            <label>Год до <input type="number" name="year_to" value={filters.year_to} onChange={updateFilter} /></label>
+            <label>Рейтинг от <input type="number" name="rating_min" step="0.1" value={filters.rating_min} onChange={updateFilter} /></label>
+            <label>
+              Сортировка
+              <select name="sort" value={filters.sort} onChange={updateFilter}>
+                <option value="created_at">По дате добавления</option>
+                <option value="title">По названию</option>
+                <option value="release_year">По году</option>
+                <option value="reviews_avg_rating">По рейтингу</option>
+              </select>
+            </label>
+            <label>
+              Порядок
+              <select name="order" value={filters.order} onChange={updateFilter}>
+                <option value="desc">По убыванию</option>
+                <option value="asc">По возрастанию</option>
+              </select>
+            </label>
+          </div>
+        </details>
+
+        <div className="filter-actions">
+          <label className="check-label">
+            <input type="checkbox" name="available" checked={filters.available} onChange={updateFilter} />
+            Только свободные сегодня
+          </label>
+          <button type="submit">Найти</button>
+          <button type="button" onClick={resetFilters}>Сбросить</button>
         </div>
       </form>
 
-      {movies.length === 0 ? (
-        <p>Фильмы не найдены</p>
-      ) : (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
-            {movies.map(movie => (
-              <div key={movie.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px' }}>
-                <h3>{movie.title}</h3>
-                <p><strong>Жанр:</strong> {movie.genre?.name || 'Неизвестно'}</p>
-                <p><strong>Год:</strong> {movie.release_year}</p>
-                <p><strong>Рейтинг:</strong> {movie.reviews_avg_rating ? `${Number(movie.reviews_avg_rating).toFixed(1)} / 10` : 'Нет оценок'}</p>
-                <p><strong>Длительность:</strong> {movie.duration} мин</p>
-                <p>{movie.description?.substring(0, 100)}...</p>
-                <Link to={`/movies/${movie.id}`} style={{ display: 'inline-block', marginTop: '10px', padding: '5px 10px', background: '#007bff', color: '#fff', textDecoration: 'none', borderRadius: '4px' }}>
-                  Подробнее
-                </Link>
-              </div>
-            ))}
-          </div>
-
-          {/* Блок пагинации */}
-          {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center' }}>
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '5px 15px' }}>Назад</button>
-              <span>Страница {meta.current_page} из {meta.last_page}</span>
-              <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)} style={{ padding: '5px 15px' }}>Вперёд</button>
+      <div aria-busy={loading}>
+        {loading ? <p className="empty-state" role="status">Загрузка фильмов…</p> : error ? (
+          <p className="empty-state error-message" role="alert">{error}</p>
+        ) : movies.length === 0 ? (
+          <p className="empty-state">Фильмы не найдены.</p>
+        ) : (
+          <>
+            <div className="movie-grid">
+              {movies.map(movie => (
+                <article className="movie-card" key={movie.id}>
+                  <div className="movie-card-top">
+                    <span>{movie.genres.map(genre => genre.name).join(', ') || 'Жанры не указаны'}</span>
+                    {movie.reviews_avg_rating != null && (
+                      <span className="movie-rating">{Number(movie.reviews_avg_rating).toFixed(1)} / 10</span>
+                    )}
+                  </div>
+                  <h2><Link to={`/movies/${movie.id}`}>{movie.title}</Link></h2>
+                  <p className="movie-meta">{[movie.release_year, movie.duration && `${movie.duration} мин`].filter(Boolean).join(' · ')}</p>
+                  {movie.description && <p className="movie-description">{movie.description}</p>}
+                  <Link className="movie-card-link" to={`/movies/${movie.id}`} aria-label={`Подробнее о фильме «${movie.title}»`}>
+                    Подробнее <span aria-hidden="true">→</span>
+                  </Link>
+                </article>
+              ))}
             </div>
-          )}
-        </>
-      )}
-    </div>
+            {meta?.last_page > 1 && (
+              <nav className="pagination" aria-label="Страницы каталога">
+                <button disabled={query.page === 1} onClick={() => changePage(-1)}>Назад</button>
+                <span>Страница {meta.current_page} из {meta.last_page}</span>
+                <button disabled={query.page >= meta.last_page} onClick={() => changePage(1)}>Вперёд</button>
+              </nav>
+            )}
+          </>
+        )}
+      </div>
+    </section>
   );
 };
 

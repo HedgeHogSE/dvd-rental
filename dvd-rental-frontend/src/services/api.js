@@ -14,8 +14,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Если токен протух или невалиден - выкидываем на логин
-    if (error.response?.status === 401) {
+    const token = localStorage.getItem('token');
+    if (error.response?.status === 401 && token && error.config?.headers?.Authorization === `Bearer ${token}`) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

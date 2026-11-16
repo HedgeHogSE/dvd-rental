@@ -43,7 +43,7 @@ const DVDList = () => {
   };
 
   if (loading && dvds.length === 0) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (error) return <div style={{ color: 'var(--danger)' }}>{error}</div>;
 
   return (
     <div>
@@ -71,43 +71,43 @@ const DVDList = () => {
         <p>DVD не найдены</p>
       ) : (
         <>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-scroll">
+            <table>
               <thead>
-                <tr style={{ background: '#f8f9fa' }}>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Инв. номер</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Жанр</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Цена/день</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действие</th>
+                <tr>
+                  <th>Инв. номер</th>
+                  <th>Фильм</th>
+                  <th>Жанры</th>
+                  <th>Статус</th>
+                  <th>Цена/день</th>
+                  <th>Действие</th>
                 </tr>
               </thead>
               <tbody>
                 {dvds.map(dvd => (
                   <tr key={dvd.id}>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.inventory_number}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.movie?.title || 'Неизвестно'}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.movie?.genre?.name || 'Неизвестно'}</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                    <td>{dvd.inventory_number}</td>
+                    <td>{dvd.movie?.title || 'Неизвестно'}</td>
+                    <td>{dvd.movie?.genres?.map(genre => genre.name).join(', ') || 'Неизвестно'}</td>
+                    <td>
                       <span style={{ 
-                        color: dvd.status === 'available' ? 'green' : 
-                               dvd.status === 'rented' ? 'red' : 'orange',
+                        color: dvd.status === 'available' ? 'var(--success)' :
+                               dvd.status === 'rented' ? 'var(--danger)' : 'orange',
                         fontWeight: 'bold'
                       }}>
                         {dvd.status === 'available' ? 'Доступен' : 
                          dvd.status === 'rented' ? 'В аренде' : 
-                         dvd.status === 'reserved' ? 'Забронирован' : 'Недоступен'}
+                         dvd.status === 'reserved' ? 'Есть брони' : 'Недоступен'}
                       </span>
                     </td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.price_per_day} ₽</td>
-                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                      {dvd.status === 'available' && (
+                    <td>{dvd.price_per_day} ₽</td>
+                    <td>
+                      {dvd.status !== 'unavailable' && (
                         <Link 
                           to={`/bookings/new?dvd_id=${dvd.id}`} 
-                          style={{ padding: '5px 10px', background: '#007bff', color: '#fff', textDecoration: 'none', borderRadius: '4px', fontSize: '14px' }}
+                          style={{ padding: '5px 10px', background: 'var(--accent)', color: 'var(--surface)', textDecoration: 'none', borderRadius: '4px', fontSize: '14px' }}
                         >
-                          Забронировать
+                          Выбрать даты
                         </Link>
                       )}
                     </td>
@@ -118,7 +118,7 @@ const DVDList = () => {
           </div>
 
           {meta && meta.last_page > 1 && (
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center' }}>
+            <div className="pagination">
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '5px 15px' }}>Назад</button>
               <span>Страница {meta.current_page} из {meta.last_page}</span>
               <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)} style={{ padding: '5px 15px' }}>Вперёд</button>

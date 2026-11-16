@@ -1,75 +1,87 @@
-import { Link, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { Link, NavLink, useMatch, useNavigate } from 'react-router-dom';
+import { useAuthSession } from './Auth/AuthSession';
 import NotificationBell from './NotificationBell';
 
-const Navigation = () => {
-  const navigate = useNavigate();
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+const accountLinks = [
+  ['/movies', 'Фильмы'],
+  ['/dvds', 'DVD'],
+  ['/wishlist', 'Избранное'],
+  ['/bookings', 'Бронирования'],
+  ['/rentals', 'Аренда'],
+];
 
-  if (!token) return null;
+const staffLinks = [
+  ['/employee/movies', 'Фильмы'],
+  ['/employee/dvds', 'DVD'],
+  ['/employee/bookings', 'Бронирования'],
+  ['/employee/rentals', 'Аренда'],
+  ['/employee/issue', 'Выдача'],
+  ['/employee/return', 'Возврат'],
+];
+
+const adminLinks = [
+  ['/admin/dashboard', 'Сводка'],
+  ['/admin/users', 'Пользователи'],
+];
+
+const NavItems = ({ links }) => {
+  const isHome = useMatch('/');
+  return links.map(([path, label]) => (
+    <NavLink
+      key={path}
+      to={path}
+      className={({ isActive }) => isActive || (isHome && path === '/movies') ? 'active' : undefined}
+    >
+      {label}
+    </NavLink>
+  ));
+};
+
+const Navigation = () => {
+  const { user, isAdmin, isStaff, signOut } = useAuthSession();
+  const navigate = useNavigate();
+  const signedIn = Boolean(user);
 
   const handleLogout = async () => {
-    try { await api.post('/logout'); } catch (e) {}
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+    await signOut();
+    navigate('/login', { replace: true });
   };
 
-  const roles = user.roles?.map(r => r.name) || [];
-  const isAdmin = roles.includes('admin');
-  const isEmployee = roles.includes('employee');
-  const isStaff = isAdmin || isEmployee;
-  const isClient = roles.includes('client');
-
   return (
-    <nav style={{ background: '#333', padding: '15px', color: '#fff', marginBottom: '20px' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center', justifyContent: 'space-between' }}>
-        
-        {/* Основные ссылки (доступны всем авторизованным) */}
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          <Link to="/movies" style={{ color: '#fff', textDecoration: 'none' }}>Фильмы</Link>
-          <Link to="/dvds" style={{ color: '#fff', textDecoration: 'none' }}>DVD</Link>
-          <Link to="/wishlist" style={{ color: '#fff', textDecoration: 'none' }}>Избранное</Link>
-          <Link to="/bookings" style={{ color: '#fff', textDecoration: 'none' }}>Мои брони</Link>
-          <Link to="/rentals" style={{ color: '#fff', textDecoration: 'none' }}>Мои аренды</Link>
+    <header className="site-header">
+      <div className="site-width">
+        <div className="header-main">
+          <Link className="wordmark" to={signedIn ? '/movies' : '/login'}>
+            <span className="disc-mark" aria-hidden="true" />
+            Видеопрокат
+          </Link>
+          {signedIn && (
+            <>
+              <nav className="nav-links account-nav" aria-label="Каталог и личный кабинет">
+                <NavItems links={accountLinks} />
+              </nav>
+              <div className="header-account">
+                <NotificationBell />
+                <span className="account-name">{user.name}</span>
+                <button type="button" onClick={handleLogout}>Выйти</button>
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Ссылки сотрудника */}
-        {isStaff && (
-          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', background: '#444', padding: '5px 10px', borderRadius: '5px' }}>
-            <span style={{ color: '#ffc107', fontWeight: 'bold' }}>Сотрудник:</span>
-            <Link to="/employee/movies" style={{ color: '#fff', textDecoration: 'none' }}>Фильмы</Link>
-            <Link to="/employee/genres" style={{ color: '#fff', textDecoration: 'none' }}>Жанры</Link>
-            <Link to="/employee/dvds" style={{ color: '#fff', textDecoration: 'none' }}>DVD</Link>
-            <Link to="/employee/bookings" style={{ color: '#fff', textDecoration: 'none' }}>Брони</Link>
-            <Link to="/employee/rentals" style={{ color: '#fff', textDecoration: 'none' }}>Аренда</Link>
-            <Link to="/employee/issue" style={{ color: '#fff', textDecoration: 'none' }}>Выдача</Link>
-            <Link to="/employee/return" style={{ color: '#fff', textDecoration: 'none' }}>Возврат</Link>
-          </div>
+        {signedIn && isStaff && (
+          <nav className="nav-links work-nav" aria-label="Сотрудник">
+            <span>Сотрудник</span>
+            <NavItems links={staffLinks} />
+          </nav>
         )}
-
-        {/* Ссылки админа */}
-        {isAdmin && (
-          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', background: '#555', padding: '5px 10px', borderRadius: '5px' }}>
-            <span style={{ color: '#00ff00', fontWeight: 'bold' }}>Админ:</span>
-            <Link to="/admin/dashboard" style={{ color: '#fff', textDecoration: 'none' }}>Панель</Link>
-            <Link to="/admin/users" style={{ color: '#fff', textDecoration: 'none' }}>Пользователи</Link>
-            <Link to="/admin/roles" style={{ color: '#fff', textDecoration: 'none' }}>Роли</Link>
-            <Link to="/admin/blocks" style={{ color: '#fff', textDecoration: 'none' }}>Блокировки</Link>
-          </div>
+        {signedIn && isAdmin && (
+          <nav className="nav-links work-nav" aria-label="Администрирование">
+            <span>Администрирование</span>
+            <NavItems links={adminLinks} />
+          </nav>
         )}
-
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-          <NotificationBell />
-          <span>Привет, {user.name || 'Гость'}!</span>
-          <button onClick={handleLogout} style={{ background: '#dc3545', color: '#fff', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>
-            Выход
-          </button>
-        </div>
-
       </div>
-    </nav>
+    </header>
   );
 };
 

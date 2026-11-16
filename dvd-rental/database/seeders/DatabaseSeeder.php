@@ -50,7 +50,9 @@ class DatabaseSeeder extends Seeder
             Genre::firstOrCreate(['name' => $genreName]);
         }
 
-        $movies = Movie::factory(20)->create();
+        $movies = Movie::factory(20)
+            ->hasAttached(Genre::inRandomOrder()->limit(2)->get(), [], 'genres')
+            ->create();
 
         $dvds = collect();
         foreach ($movies as $movie) {

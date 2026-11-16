@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,12 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with('roles');
+        $query = User::query();
+        if ($request->user()->roles()->where('name', 'admin')->exists()) {
+            $query->with('roles');
+        } else {
+            $query->select(['id', 'name']);
+        }
 
         $perPage = max(1, min($request->integer('per_page', 15), 100));
 
@@ -59,17 +65,33 @@ class UserController extends Controller
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8',
+            'role_ids' => 'sometimes|array|list',
+            'role_ids.*' => 'required|integer|distinct|exists:roles,id',
         ]);
+
+        $roleIds = $validated['role_ids'] ?? null;
+        unset($validated['role_ids']);
 
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+        } else {
+            unset($validated['password']);
         }
 
-        $user->update($validated);
+        $user = DB::transaction(function () use ($user, $validated, $roleIds) {
+            $user = User::query()->lockForUpdate()->findOrFail($user->id);
+            $user->update($validated);
+
+            if ($roleIds !== null) {
+                $user->roles()->sync($roleIds);
+            }
+
+            return $user->load('roles');
+        });
 
         return response()->json([
             'message' => 'Данные пользователя успешно обновлены',
-            'user' => $user->load('roles'),
+            'user' => $user,
         ], 200);
     }
 
