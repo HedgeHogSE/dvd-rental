@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
 import { useNavigate } from 'react-router-dom';
+=======
+import { useNavigate, useSearchParams } from 'react-router-dom'; // <-- Добавили useSearchParams
+>>>>>>> feature/functionality
 import api from '../../services/api';
 
 const BookingForm = () => {
@@ -11,11 +15,18 @@ const BookingForm = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+<<<<<<< HEAD
+=======
+  
+  const [searchParams] = useSearchParams(); // <-- Получаем параметры из URL
+  const preselectedDvdId = searchParams.get('dvd_id'); // <-- Читаем dvd_id
+>>>>>>> feature/functionality
 
   useEffect(() => {
     fetchAvailableDVDs();
   }, []);
 
+<<<<<<< HEAD
   const fetchAvailableDVDs = async () => {
     try {
       const response = await api.get('/dvds');
@@ -26,6 +37,25 @@ const BookingForm = () => {
     }
   };
 
+=======
+  useEffect(() => {
+    // Если в URL был передан dvd_id, устанавливаем его в форму
+    if (preselectedDvdId && dvds.length > 0) {
+      setSelectedDvdId(preselectedDvdId);
+    }
+  }, [preselectedDvdId, dvds]);
+
+  const fetchAvailableDVDs = async () => {
+    try {
+      const response = await api.get('/dvds', { params: { status: 'available', per_page: 100 } });
+      setDvds(response.data.data);
+    } catch (error) {
+      setError('Ошибка загрузки DVD');
+    }
+  };
+
+
+>>>>>>> feature/functionality
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -41,7 +71,18 @@ const BookingForm = () => {
       setSuccess(true);
       setTimeout(() => navigate('/bookings'), 2000);
     } catch (error) {
+<<<<<<< HEAD
       setError(error.response?.data?.message || 'Ошибка при создании бронирования');
+=======
+      // Бэкенд возвращает ошибки валидации в error.response.data.errors
+      // или общее сообщение в error.response.data.message
+      if (error.response?.data?.errors) {
+        const firstError = Object.values(error.response.data.errors)[0][0];
+        setError(firstError);
+      } else {
+        setError(error.response?.data?.message || 'Ошибка при создании бронирования');
+      }
+>>>>>>> feature/functionality
     } finally {
       setLoading(false);
     }

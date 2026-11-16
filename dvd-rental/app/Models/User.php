@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -17,14 +16,8 @@ use Laravel\Sanctum\HasApiTokens;
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
-    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -32,6 +25,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function isStaff(): bool
+    {
+        return $this->roles()->whereIn('name', ['admin', 'employee'])->exists();
+    }
+
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class);
@@ -52,11 +51,22 @@ class User extends Authenticatable
         return $this->hasMany(Block::class);
     }
 
-    // Связь User ↔ Dvd через таблицу бронирований
     public function bookedDvds(): BelongsToMany
     {
         return $this->belongsToMany(Dvd::class, 'bookings')
             ->withPivot(['start_date', 'end_date', 'status'])
+            ->withTimestamps();
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function wishlist(): BelongsToMany
+    {
+        return $this->belongsToMany(Movie::class, 'movie_user_wishlist')
+            ->withPivot('notified_at')
             ->withTimestamps();
     }
 }

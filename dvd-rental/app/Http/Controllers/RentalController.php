@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Dvd;
+use App\Models\Movie;
 use App\Models\Rental;
+use App\Notifications\RentalIssued;
+use App\Notifications\WishlistAvailable;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,40 +15,55 @@ use Illuminate\Validation\ValidationException;
 
 class RentalController extends Controller
 {
-    /**
-     * 9.1: Получить список всех аренд
-     */
     public function index(Request $request)
     {
         $user = $request->user();
         $query = Rental::with(['user', 'dvd.movie', 'booking']);
 
-        // Клиент видит только свои аренды, сотрудникам и админам доступны все
-        if (!$user->roles()->whereIn('name', ['admin', 'employee'])->exists()) {
+        if (!$user->isStaff()) {
             $query->where('user_id', $user->id);
+        } else if ($request->filled('user_id')) {
+            $query->where('user_id', $request->integer('user_id'));
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get(), 200);
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('dvd_id')) {
+            $query->where('dvd_id', $request->integer('dvd_id'));
+        }
+
+        if ($request->filled('from')) {
+            $query->where('issued_at', '>=', $request->date('from'));
+        }
+        if ($request->filled('to')) {
+            $query->where('issued_at', '<=', $request->date('to'));
+        }
+
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json(
+            $query->orderBy('created_at', 'desc')->paginate($perPage),
+            200
+        );
     }
 
-    /**
-     * 9.1 & 9.2: Оформление выдачи DVD
-     */
     public function store(Request $request)
     {
+        $this->authorize('update', Rental::class);
+
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'dvd_id' => 'required|exists:dvds,id',
             'booking_id' => 'nullable|exists:bookings,id',
-            'days' => 'nullable|integer|min:1', // Если выдается без бронирования
+            'days' => 'nullable|integer|min:1',
         ]);
 
         try {
             $rental = DB::transaction(function () use ($validated) {
-                // Блокируем запись DVD для предотвращения параллельной выдачи
                 $dvd = Dvd::where('id', $validated['dvd_id'])->lockForUpdate()->firstOrFail();
 
-                // Проверка доступности диска
                 if ($dvd->status === 'rented') {
                     throw ValidationException::withMessages([
                         'dvd_id' => ['Данный DVD уже находится в аренде.'],
@@ -60,7 +78,6 @@ class RentalController extends Controller
 
                 $rentalDays = $validated['days'] ?? 1;
 
-                // Если оформляется на основе бронирования
                 if (!empty($validated['booking_id'])) {
                     $booking = Booking::findOrFail($validated['booking_id']);
 
@@ -70,19 +87,26 @@ class RentalController extends Controller
                         ]);
                     }
 
-                    // Рассчитываем количество дней из дат бронирования
+                    if ($booking->user_id !== (int) $validated['user_id']) {
+                        throw ValidationException::withMessages([
+                            'booking_id' => ['Бронирование принадлежит другому пользователю.'],
+                        ]);
+                    }
+                    if ($booking->dvd_id !== $dvd->id) {
+                        throw ValidationException::withMessages([
+                            'booking_id' => ['Бронирование оформлено на другой DVD.'],
+                        ]);
+                    }
+
                     $startDate = Carbon::parse($booking->start_date);
                     $endDate = Carbon::parse($booking->end_date);
                     $rentalDays = max(1, $startDate->diffInDays($endDate));
 
-                    // Завершаем бронирование, так как диск фактически выдан
                     $booking->update(['status' => 'completed']);
                 }
 
-                // 9.2: Расчет стоимости (дни × цена за день)
                 $totalPrice = $rentalDays * $dvd->price_per_day;
 
-                // 9.2: Создание записи аренды
                 $newRental = Rental::create([
                     'user_id' => $validated['user_id'],
                     'dvd_id' => $dvd->id,
@@ -92,11 +116,12 @@ class RentalController extends Controller
                     'price' => $totalPrice,
                 ]);
 
-                // 9.2: Меняем статус DVD на rented
                 $dvd->update(['status' => 'rented']);
 
                 return $newRental;
             });
+
+            $rental->user->notify(new RentalIssued($rental));
 
             return response()->json([
                 'message' => 'Выдача DVD успешно оформлена',
@@ -112,25 +137,16 @@ class RentalController extends Controller
         }
     }
 
-    /**
-     * 9.1: Детальная информация об аренде
-     */
     public function show(Request $request, Rental $rental)
     {
-        $user = $request->user();
-
-        if (!$user->roles()->whereIn('name', ['admin', 'employee'])->exists() && $rental->user_id !== $user->id) {
-            return response()->json(['message' => 'Доступ запрещен'], 403);
-        }
-
+        $this->authorize('view', $rental);
         return response()->json($rental->load(['user', 'dvd.movie', 'booking']), 200);
     }
 
-    /**
-     * 9.1 & 9.3: Оформление возврата DVD
-     */
     public function update(Request $request, Rental $rental)
     {
+        $this->authorize('update', $rental);
+
         if ($rental->status === 'returned') {
             return response()->json([
                 'message' => 'Данный DVD уже был возвращен ранее',
@@ -140,14 +156,27 @@ class RentalController extends Controller
         DB::transaction(function () use ($rental) {
             $dvd = Dvd::where('id', $rental->dvd_id)->lockForUpdate()->firstOrFail();
 
-            // 9.3: Обновляем статус аренды и фиксируем время возврата
             $rental->update([
                 'status' => 'returned',
                 'returned_at' => now(),
             ]);
 
-            // 9.3: Возвращаем DVD статус available
             $dvd->update(['status' => 'available']);
+
+            $movieId = $dvd->movie_id;
+
+            $wishlistedUsers = \App\Models\User::whereHas('wishlist', function ($query) use ($movieId) {
+                $query->where('movie_id', $movieId)
+                      ->whereNull('movie_user_wishlist.notified_at');
+            })->get();
+
+            if ($wishlistedUsers->isNotEmpty()) {
+                $movie = Movie::find($movieId);
+                foreach ($wishlistedUsers as $u) {
+                    $u->notify(new WishlistAvailable($movie));
+                    $u->wishlist()->updateExistingPivot($movieId, ['notified_at' => now()]);
+                }
+            }
         });
 
         return response()->json([
@@ -156,11 +185,10 @@ class RentalController extends Controller
         ], 200);
     }
 
-    /**
-     * Удаление записи об аренде (для администраторов)
-     */
-    public function destroy(Rental $rental)
+    public function destroy(Request $request, Rental $rental)
     {
+        $this->authorize('delete', $rental);
+
         $rental->delete();
 
         return response()->json([

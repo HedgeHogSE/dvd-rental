@@ -6,37 +6,54 @@ use App\Models\Block;
 use App\Models\Booking;
 use App\Models\Dvd;
 use App\Models\Rental;
+use App\Notifications\BookingCancelled;
+use App\Notifications\BookingConfirmed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Models\Movie;
+use App\Notifications\WishlistAvailable;
 
 class BookingController extends Controller
 {
-    /**
-     * Получить список бронирований текущего пользователя
-     */
     public function index(Request $request)
     {
         $user = $request->user();
-
-        // Если пользователь админ/сотрудник — возвращаем все бронирования, если клиент — только его
         $query = Booking::with(['dvd.movie', 'user']);
 
-        if (!$user->roles()->whereIn('name', ['admin', 'employee'])->exists()) {
+        if (!$user->isStaff()) {
             $query->where('user_id', $user->id);
+        } else if ($request->filled('user_id')) {
+            $query->where('user_id', $request->integer('user_id'));
         }
 
-        return response()->json($query->orderBy('created_at', 'desc')->get(), 200);
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('dvd_id')) {
+            $query->where('dvd_id', $request->integer('dvd_id'));
+        }
+
+        if ($request->filled('from')) {
+            $query->where('start_date', '>=', $request->date('from'));
+        }
+        if ($request->filled('to')) {
+            $query->where('end_date', '<=', $request->date('to'));
+        }
+
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json(
+            $query->orderBy('created_at', 'desc')->paginate($perPage),
+            200
+        );
     }
 
-    /**
-     * Создать новое бронирование (с проверками, транзакцией и блокировкой)
-     */
     public function store(Request $request)
     {
         $user = $request->user();
 
-        // 7.2: Проверка: заблокирован ли пользователь
         $isBlocked = Block::where('user_id', $user->id)
             ->where(function ($query) {
                 $query->whereNull('expires_at')
@@ -50,7 +67,6 @@ class BookingController extends Controller
             ], 403);
         }
 
-        // Валидация входных данных
         $validated = $request->validate([
             'dvd_id' => 'required|exists:dvds,id',
             'start_date' => 'required|date|after_or_equal:today',
@@ -58,20 +74,16 @@ class BookingController extends Controller
         ]);
 
         try {
-            // 7.3: Выполнение в транзакции для предотвращения race conditions
             $booking = DB::transaction(function () use ($user, $validated) {
 
-                // 7.3: Пессимистичная блокировка записи DVD (lockForUpdate)
                 $dvd = Dvd::where('id', $validated['dvd_id'])->lockForUpdate()->firstOrFail();
 
-                // 7.2: Проверка статуса DVD
                 if ($dvd->status === 'unavailable') {
                     throw ValidationException::withMessages([
                         'dvd_id' => ['Данный DVD недоступен для бронирования (статус: unavailable).'],
                     ]);
                 }
 
-                // 7.2 & 7.3: Проверка пересечения с активными бронированиями
                 $hasBookingConflict = Booking::where('dvd_id', $dvd->id)
                     ->where('status', 'active')
                     ->where(function ($query) use ($validated) {
@@ -86,7 +98,6 @@ class BookingController extends Controller
                     ]);
                 }
 
-                // 7.2: Проверка: не находится ли DVD в активной аренде
                 $hasRentalConflict = Rental::where('dvd_id', $dvd->id)
                     ->where('status', 'active')
                     ->whereNull('returned_at')
@@ -98,15 +109,20 @@ class BookingController extends Controller
                     ]);
                 }
 
-                // 7.4: Создание бронирования со статусом active
-                return Booking::create([
+                $newBooking = Booking::create([
                     'user_id' => $user->id,
                     'dvd_id' => $dvd->id,
                     'start_date' => $validated['start_date'],
                     'end_date' => $validated['end_date'],
                     'status' => 'active',
                 ]);
+
+                $dvd->update(['status' => 'reserved']);
+
+                return $newBooking;
             });
+
+            $user->notify(new BookingConfirmed($booking));
 
             return response()->json([
                 'message' => 'Бронирование успешно создано',
@@ -122,31 +138,56 @@ class BookingController extends Controller
         }
     }
 
-    /**
-     * Получить детальную информацию о бронировании
-     */
     public function show(Request $request, Booking $booking)
     {
-        $user = $request->user();
-
-        // Проверка прав: клиент может просматривать только свои бронирования
-        if (!$user->roles()->whereIn('name', ['admin', 'employee'])->exists() && $booking->user_id !== $user->id) {
-            return response()->json(['message' => 'Доступ запрещен'], 403);
-        }
-
+        $this->authorize('view', $booking);
         return response()->json($booking->load(['dvd.movie', 'user']), 200);
     }
 
-    /**
-     * 7.4: Обновление статуса бронирования (active, cancelled, completed)
-     */
     public function update(Request $request, Booking $booking)
     {
+        $this->authorize('update', $booking);
+
+        if (!$request->user()->isStaff() && $request->input('status') !== 'cancelled') {
+            return response()->json(['message' => 'Клиент может только отменить бронирование'], 403);
+        }
+
         $validated = $request->validate([
             'status' => 'required|string|in:active,cancelled,completed',
         ]);
 
-        $booking->update(['status' => $validated['status']]);
+        DB::transaction(function () use ($booking, $validated) {
+            $booking->update(['status' => $validated['status']]);
+
+            if ($validated['status'] === 'cancelled') {
+                $hasOtherActiveBookings = Booking::where('dvd_id', $booking->dvd_id)
+                    ->where('id', '!=', $booking->id)
+                    ->where('status', 'active')
+                    ->exists();
+
+                if (!$hasOtherActiveBookings) {
+                    Dvd::where('id', $booking->dvd_id)->update(['status' => 'available']);
+                }
+
+                $movieId = $booking->dvd->movie_id;
+                $wishlistedUsers = \App\Models\User::whereHas('wishlist', function ($query) use ($movieId) {
+                    $query->where('movie_id', $movieId)
+                        ->whereNull('movie_user_wishlist.notified_at');
+                })->get();
+
+                if ($wishlistedUsers->isNotEmpty()) {
+                    $movie = Movie::find($movieId);
+                    foreach ($wishlistedUsers as $u) {
+                        $u->notify(new WishlistAvailable($movie));
+                        $u->wishlist()->updateExistingPivot($movieId, ['notified_at' => now()]);
+                    }
+                }
+            }
+        });
+
+        if ($validated['status'] === 'cancelled') {
+            $booking->user->notify(new BookingCancelled($booking));
+        }
 
         return response()->json([
             'message' => 'Статус бронирования успешно обновлен',
@@ -154,18 +195,38 @@ class BookingController extends Controller
         ], 200);
     }
 
-    /**
-     * Отмена бронирования (перевод статуса в cancelled)
-     */
     public function destroy(Request $request, Booking $booking)
     {
-        $user = $request->user();
+        $this->authorize('delete', $booking);
 
-        if (!$user->roles()->whereIn('name', ['admin', 'employee'])->exists() && $booking->user_id !== $user->id) {
-            return response()->json(['message' => 'Доступ запрещен'], 403);
-        }
+        DB::transaction(function () use ($booking) {
+            $booking->update(['status' => 'cancelled']);
 
-        $booking->update(['status' => 'cancelled']);
+            $hasOtherActiveBookings = Booking::where('dvd_id', $booking->dvd_id)
+                ->where('id', '!=', $booking->id)
+                ->where('status', 'active')
+                ->exists();
+
+            if (!$hasOtherActiveBookings) {
+                Dvd::where('id', $booking->dvd_id)->update(['status' => 'available']);
+            }
+
+            $movieId = $booking->dvd->movie_id;
+            $wishlistedUsers = \App\Models\User::whereHas('wishlist', function ($query) use ($movieId) {
+                $query->where('movie_id', $movieId)
+                    ->whereNull('movie_user_wishlist.notified_at');
+            })->get();
+
+            if ($wishlistedUsers->isNotEmpty()) {
+                $movie = Movie::find($movieId);
+                foreach ($wishlistedUsers as $u) {
+                    $u->notify(new WishlistAvailable($movie));
+                    $u->wishlist()->updateExistingPivot($movieId, ['notified_at' => now()]);
+                }
+            }
+        });
+
+        $booking->user->notify(new BookingCancelled($booking));
 
         return response()->json([
             'message' => 'Бронирование успешно отменено',

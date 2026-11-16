@@ -8,17 +8,13 @@ use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
-    /**
-     * Получить список всех ролей
-     */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Role::all(), 200);
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json(Role::paginate($perPage), 200);
     }
 
-    /**
-     * Создать новую роль
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -33,21 +29,14 @@ class RoleController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить информацию о конкретной роли
-     */
     public function show(Role $role)
     {
         return response()->json($role, 200);
     }
 
-    /**
-     * Обновить существующую роль
-     */
     public function update(Request $request, Role $role)
     {
         $validated = $request->validate([
-            // Исключаем текущую роль из проверки уникальности при обновлении
             'name' => ['required', 'string', 'max:55', Rule::unique('roles', 'name')->ignore($role->id)],
         ]);
 
@@ -59,9 +48,6 @@ class RoleController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить роль
-     */
     public function destroy(Role $role)
     {
         $role->delete();

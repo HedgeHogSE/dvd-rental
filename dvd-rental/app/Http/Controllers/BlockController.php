@@ -7,32 +7,26 @@ use Illuminate\Http\Request;
 
 class BlockController extends Controller
 {
-    /**
-     * 8.1 & 8.2: Получить список только АКТИВНЫХ блокировок
-     */
-    public function index()
+    public function index(Request $request)
     {
-        // Активной считается блокировка, у которой expires_at IS NULL ИЛИ expires_at в будущем
-        $activeBlocks = Block::with('user')
+        $query = Block::with('user')
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>', now());
             })
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
 
-        return response()->json($activeBlocks, 200);
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json($query->paginate($perPage), 200);
     }
 
-    /**
-     * 8.1 & 8.2: Создать блокировку для пользователя
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'reason' => 'required|string|max:255',
-            'expires_at' => 'nullable|date|after:now', // Если не передано — блокировка постоянная
+            'expires_at' => 'nullable|date|after:now',
         ]);
 
         $block = Block::create($validated);
@@ -43,17 +37,11 @@ class BlockController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить информацию о конкретной блокировке
-     */
     public function show(Block $block)
     {
         return response()->json($block->load('user'), 200);
     }
 
-    /**
-     * 8.1: Снятие (удаление) блокировки
-     */
     public function destroy(Block $block)
     {
         $block->delete();

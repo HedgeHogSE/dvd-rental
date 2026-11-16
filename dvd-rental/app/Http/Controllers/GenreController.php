@@ -8,17 +8,14 @@ use Illuminate\Validation\Rule;
 
 class GenreController extends Controller
 {
-    /**
-     * Получить список всех жанров
-     */
-    public function index()
+
+    public function index(Request $request)
     {
-        return response()->json(Genre::all(), 200);
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json(Genre::paginate($perPage), 200);
     }
 
-    /**
-     * Создать новый жанр
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -33,17 +30,11 @@ class GenreController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить информацию о конкретном жанре
-     */
     public function show(Genre $genre)
     {
         return response()->json($genre, 200);
     }
 
-    /**
-     * Обновить существующий жанр
-     */
     public function update(Request $request, Genre $genre)
     {
         $validated = $request->validate([
@@ -58,9 +49,6 @@ class GenreController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить жанр
-     */
     public function destroy(Genre $genre)
     {
         $genre->delete();

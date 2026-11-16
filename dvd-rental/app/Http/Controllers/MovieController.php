@@ -4,33 +4,74 @@ namespace App\Http\Controllers;
 
 use App\Models\Movie;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MovieController extends Controller
 {
-    /**
-     * Получить список всех фильмов с фильтрацией и поиском
-     */
     public function index(Request $request)
     {
-        // Начинаем билдер запроса с eager loading жанра
-        $query = Movie::with('genre');
+        $query = Movie::with(['genre', 'dvds'])
+            ->withAvg(['reviews' => function ($q) {
+                $q->where('status', 'published');
+            }], 'rating')
+            ->withCount(['reviews' => function ($q) {
+                $q->where('status', 'published');
+            }]);
 
-        // Поиск по названию (?search=текст)
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where('title', 'like', '%' . $request->search . '%');
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                ->orWhere('description', 'like', '%' . $search . '%');
+            });
         }
 
-        // Фильтрация по genre_id (?genre_id=1)
-        if ($request->has('genre_id') && !empty($request->genre_id)) {
-            $query->where('genre_id', $request->genre_id);
+        if ($request->filled('genre_id')) {
+            $query->where('genre_id', $request->input('genre_id'));
         }
 
-        return response()->json($query->get(), 200);
+        if ($request->filled('year_from')) {
+            $query->where('release_year', '>=', $request->integer('year_from'));
+        }
+        if ($request->filled('year_to')) {
+            $query->where('release_year', '<=', $request->integer('year_to'));
+        }
+
+        if ($request->filled('rating_min')) {
+            $ratingMin = $request->float('rating_min');
+            $query->whereRaw(
+                "(SELECT AVG(rating) FROM reviews WHERE reviews.movie_id = movies.id AND reviews.status = 'published') >= ?",
+                [$ratingMin]
+            );
+        }
+
+        if ($request->boolean('available')) {
+            $query->whereHas('dvds', function ($q) {
+                $q->where('status', 'available');
+            });
+        }
+
+        $sortField = $request->input('sort', 'created_at');
+        $sortOrder = $request->input('order', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $allowedSorts = ['title', 'release_year', 'reviews_avg_rating', 'created_at'];
+        if (in_array($sortField, $allowedSorts, true)) {
+            if ($sortField === 'reviews_avg_rating') {
+                $query->orderByRaw(
+                    "(SELECT AVG(rating) FROM reviews WHERE reviews.movie_id = movies.id AND reviews.status = 'published') " . $sortOrder . " NULLS LAST"
+                );
+            } else {
+                $query->orderBy($sortField, $sortOrder);
+            }
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json($query->paginate($perPage), 200);
     }
 
-    /**
-     * Создать новый фильм
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -49,17 +90,18 @@ class MovieController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить детальную информацию о фильме
-     */
     public function show(Movie $movie)
     {
-        return response()->json($movie->load('genre'), 200);
-    }
+        $movie->load(['genre', 'dvds'])
+            ->loadAvg(['reviews' => function ($q) {
+                $q->where('status', 'published');
+            }], 'rating')
+            ->loadCount(['reviews' => function ($q) {
+                $q->where('status', 'published');
+            }]);
 
-    /**
-     * Обновить фильм
-     */
+        return response()->json($movie, 200);
+    }
     public function update(Request $request, Movie $movie)
     {
         $validated = $request->validate([
@@ -78,9 +120,6 @@ class MovieController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить фильм
-     */
     public function destroy(Movie $movie)
     {
         $movie->delete();

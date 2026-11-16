@@ -8,18 +8,27 @@ use Illuminate\Validation\Rule;
 
 class DvdController extends Controller
 {
-    /**
-     * Получить список всех DVD с информацией о фильме
-     */
-    public function index()
+    public function index(Request $request)
     {
-        // Загружаем DVD вместе с информацией о фильме и его жанре
-        return response()->json(Dvd::with('movie.genre')->get(), 200);
+        $query = Dvd::with('movie.genre');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        if ($request->filled('movie_id')) {
+            $query->where('movie_id', $request->integer('movie_id'));
+        }
+
+        if ($request->filled('search')) {
+            $query->where('inventory_number', 'like', '%' . $request->input('search') . '%');
+        }
+
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json($query->paginate($perPage), 200);
     }
 
-    /**
-     * Создать новый DVD
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -37,17 +46,11 @@ class DvdController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить детальную информацию о конкретном DVD
-     */
     public function show(Dvd $dvd)
     {
         return response()->json($dvd->load('movie.genre'), 200);
     }
 
-    /**
-     * Обновить информацию о DVD
-     */
     public function update(Request $request, Dvd $dvd)
     {
         $validated = $request->validate([
@@ -71,9 +74,6 @@ class DvdController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить DVD
-     */
     public function destroy(Dvd $dvd)
     {
         $dvd->delete();
