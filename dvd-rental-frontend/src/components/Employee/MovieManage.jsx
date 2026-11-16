@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
 const MovieManage = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
   const [formData, setFormData] = useState({
@@ -16,17 +16,27 @@ const MovieManage = () => {
   });
   const [genres, setGenres] = useState([]);
 
+  // Пагинация
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState(null);
+
   useEffect(() => {
-    fetchMovies();
+    fetchMovies(page);
+  }, [page]);
+
+  useEffect(() => {
     fetchGenres();
   }, []);
 
-  const fetchMovies = async () => {
+  const fetchMovies = async (currentPage = 1) => {
+    setLoading(true);
     try {
-      const response = await api.get('/movies');
-      setMovies(response.data);
+      const response = await api.get('/movies', { params: { page: currentPage, per_page: 15 } });
+      setMovies(response.data.data);
+      setMeta(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки фильмов:', error);
+      setError('Ошибка загрузки фильмов');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -34,8 +44,8 @@ const MovieManage = () => {
 
   const fetchGenres = async () => {
     try {
-      const response = await api.get('/genres');
-      setGenres(response.data);
+      const response = await api.get('/genres', { params: { per_page: 100 } });
+      setGenres(response.data.data || []);
     } catch (error) {
       console.error('Ошибка загрузки жанров:', error);
     }
@@ -47,7 +57,7 @@ const MovieManage = () => {
       await api.delete(`/movies/${id}`);
       setMovies(movies.filter(m => m.id !== id));
     } catch (error) {
-      console.error('Ошибка удаления:', error);
+      alert(error.response?.data?.message || 'Ошибка удаления');
     }
   };
 
@@ -74,13 +84,14 @@ const MovieManage = () => {
       setShowForm(false);
       setEditingMovie(null);
       setFormData({ title: '', description: '', release_year: new Date().getFullYear(), duration: 0, genre_id: '' });
-      fetchMovies();
+      fetchMovies(page);
     } catch (error) {
-      console.error('Ошибка сохранения:', error);
+      alert(error.response?.data?.message || 'Ошибка сохранения');
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading && movies.length === 0) return <div>Загрузка...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
@@ -164,37 +175,46 @@ const MovieManage = () => {
       {movies.length === 0 ? (
         <p>Фильмы не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Название</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Жанр</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Год</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Длительность</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {movies.map(movie => (
-                <tr key={movie.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.title}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.genre?.name || '-'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.release_year}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.duration} мин</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(movie)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
-                      Ред.
-                    </button>
-                    <button onClick={() => handleDelete(movie.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                      Удалить
-                    </button>
-                  </td>
+        <>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa' }}>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Название</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Жанр</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Год</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Длительность</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {movies.map(movie => (
+                  <tr key={movie.id}>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.title}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.genre?.name || '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.release_year}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.duration} мин</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                      <button onClick={() => handleEdit(movie)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                        Ред.
+                      </button>
+                      <button onClick={() => handleDelete(movie.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {meta && meta.last_page > 1 && (
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
+              <span>{meta.current_page} из {meta.last_page}</span>
+              <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

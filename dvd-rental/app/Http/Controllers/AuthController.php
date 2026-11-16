@@ -10,12 +10,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Регистрация нового пользователя
-     */
     public function register(Request $request)
     {
-        // Валидация входящих данных
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -23,7 +19,6 @@ class AuthController extends Controller
             'phone' => 'nullable|string|max:20',
         ]);
 
-        // Создаем пользователя
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -31,7 +26,6 @@ class AuthController extends Controller
             'phone' => $validated['phone'] ?? null,
         ]);
 
-        // Создаем Sanctum API token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -41,9 +35,6 @@ class AuthController extends Controller
         ], 201);
     }
 
-    /**
-     * Вход пользователя
-     */
     public function login(Request $request)
     {
         $validated = $request->validate([
@@ -51,7 +42,6 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        // Проверяем логин и пароль
         if (!Auth::attempt(['email' => $validated['email'], 'password' => $validated['password']])) {
             throw ValidationException::withMessages([
                 'email' => ['Предоставленные учетные данные неверны.'],
@@ -60,7 +50,6 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->firstOrFail();
 
-        // Создаем Sanctum API token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -70,12 +59,8 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * Выход из системы (отзыв текущего токена)
-     */
     public function logout(Request $request)
     {
-        // Удаляем текущий токен, с которым сделан запрос
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
@@ -83,12 +68,8 @@ class AuthController extends Controller
         ], 200);
     }
 
-    /**
-     * Получение текущего авторизованного пользователя
-     */
     public function me(Request $request)
     {
-        // Возвращаем данные текущего пользователя с привязанными ролями
         return response()->json($request->user()->load('roles'));
     }
 }

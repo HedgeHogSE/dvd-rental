@@ -4,6 +4,7 @@ import api from '../../services/api';
 const DVDManage = () => {
   const [dvds, setDvds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingDvd, setEditingDvd] = useState(null);
   const [movies, setMovies] = useState([]);
@@ -14,17 +15,27 @@ const DVDManage = () => {
     price_per_day: 0
   });
 
+  // Пагинация
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState(null);
+
   useEffect(() => {
-    fetchDVDs();
+    fetchDVDs(page);
+  }, [page]);
+
+  useEffect(() => {
     fetchMovies();
   }, []);
 
-  const fetchDVDs = async () => {
+  const fetchDVDs = async (currentPage = 1) => {
+    setLoading(true);
     try {
-      const response = await api.get('/dvds');
-      setDvds(response.data);
+      const response = await api.get('/dvds', { params: { page: currentPage, per_page: 15 } });
+      setDvds(response.data.data);
+      setMeta(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки DVD:', error);
+      setError('Ошибка загрузки DVD');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -32,8 +43,8 @@ const DVDManage = () => {
 
   const fetchMovies = async () => {
     try {
-      const response = await api.get('/movies');
-      setMovies(response.data);
+      const response = await api.get('/movies', { params: { per_page: 100 } });
+      setMovies(response.data.data || []);
     } catch (error) {
       console.error('Ошибка загрузки фильмов:', error);
     }
@@ -45,7 +56,7 @@ const DVDManage = () => {
       await api.delete(`/dvds/${id}`);
       setDvds(dvds.filter(d => d.id !== id));
     } catch (error) {
-      console.error('Ошибка удаления:', error);
+      alert(error.response?.data?.message || 'Ошибка удаления');
     }
   };
 
@@ -71,13 +82,14 @@ const DVDManage = () => {
       setShowForm(false);
       setEditingDvd(null);
       setFormData({ movie_id: '', inventory_number: '', status: 'available', price_per_day: 0 });
-      fetchDVDs();
+      fetchDVDs(page);
     } catch (error) {
-      console.error('Ошибка сохранения:', error);
+      alert(error.response?.data?.message || 'Ошибка сохранения');
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading && dvds.length === 0) return <div>Загрузка...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
@@ -153,37 +165,46 @@ const DVDManage = () => {
       {dvds.length === 0 ? (
         <p>DVD не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Инв. номер</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Цена/день</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dvds.map(dvd => (
-                <tr key={dvd.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.inventory_number}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.movie?.title || '-'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.status}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.price_per_day} ₽</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(dvd)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
-                      Ред.
-                    </button>
-                    <button onClick={() => handleDelete(dvd.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                      Удалить
-                    </button>
-                  </td>
+        <>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa' }}>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Инв. номер</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Цена/день</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {dvds.map(dvd => (
+                  <tr key={dvd.id}>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.inventory_number}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.movie?.title || '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.status}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.price_per_day} ₽</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                      <button onClick={() => handleEdit(dvd)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                        Ред.
+                      </button>
+                      <button onClick={() => handleDelete(dvd.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {meta && meta.last_page > 1 && (
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
+              <span>{meta.current_page} из {meta.last_page}</span>
+              <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

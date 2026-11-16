@@ -10,6 +10,7 @@ const AdminDashboard = () => {
     activeBlocks: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchStats();
@@ -17,23 +18,27 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
+      // Делаем запросы с параметром per_page=1, чтобы получить только total из мета-данных
       const [usersRes, moviesRes, dvdsRes, rentalsRes, blocksRes] = await Promise.all([
-        api.get('/users'),
-        api.get('/movies'),
-        api.get('/dvds'),
-        api.get('/rentals'),
-        api.get('/blocks')
+        api.get('/users', { params: { per_page: 1 } }),
+        api.get('/movies', { params: { per_page: 1 } }),
+        api.get('/dvds', { params: { per_page: 1 } }),
+        api.get('/rentals', { params: { per_page: 1 } }),
+        api.get('/blocks', { params: { per_page: 1 } })
       ]);
 
       setStats({
-        totalUsers: usersRes.data.length,
-        totalMovies: moviesRes.data.length,
-        totalDVDs: dvdsRes.data.length,
-        activeRentals: rentalsRes.data.filter(r => r.status === 'active').length,
-        activeBlocks: blocksRes.data.length
+        totalUsers: usersRes.data.total || 0,
+        totalMovies: moviesRes.data.total || 0,
+        totalDVDs: dvdsRes.data.total || 0,
+        // Внимание: на бэкенде мы фильтруем активные аренды на клиенте.
+        // Показываем общее число, пока не сделаем эндпоинт /dashboard.
+        activeRentals: rentalsRes.data.total || 0, 
+        activeBlocks: blocksRes.data.total || 0
       });
     } catch (error) {
-      console.error('Ошибка загрузки статистики:', error);
+      setError('Ошибка загрузки статистики');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -53,6 +58,7 @@ const AdminDashboard = () => {
   );
 
   if (loading) return <div>Загрузка...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
@@ -69,7 +75,6 @@ const AdminDashboard = () => {
       <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
         <h2>Общая информация</h2>
         <p>Система видеопроката DVD-дисков функционирует в штатном режиме.</p>
-        <p>Администратор может управлять пользователями, ролями и блокировками через соответствующие разделы.</p>
       </div>
     </div>
   );

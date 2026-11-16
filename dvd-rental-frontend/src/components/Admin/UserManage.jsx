@@ -5,8 +5,14 @@ const UserManage = () => {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  
+  // Пагинация
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState(null);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,16 +22,21 @@ const UserManage = () => {
   });
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(page);
+  }, [page]);
+
+  useEffect(() => {
     fetchRoles();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (currentPage = 1) => {
+    setLoading(true);
     try {
-      const response = await api.get('/users');
-      setUsers(response.data);
+      const response = await api.get('/users', { params: { page: currentPage, per_page: 15 } });
+      setUsers(response.data.data);
+      setMeta(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки пользователей:', error);
+      setError('Ошибка загрузки пользователей');
     } finally {
       setLoading(false);
     }
@@ -33,8 +44,8 @@ const UserManage = () => {
 
   const fetchRoles = async () => {
     try {
-      const response = await api.get('/roles');
-      setRoles(response.data);
+      const response = await api.get('/roles', { params: { per_page: 100 } });
+      setRoles(response.data.data || []);
     } catch (error) {
       console.error('Ошибка загрузки ролей:', error);
     }
@@ -46,7 +57,7 @@ const UserManage = () => {
       await api.delete(`/users/${id}`);
       setUsers(users.filter(u => u.id !== id));
     } catch (error) {
-      console.error('Ошибка удаления:', error);
+      alert(error.response?.data?.message || 'Ошибка удаления');
     }
   };
 
@@ -73,27 +84,22 @@ const UserManage = () => {
       setShowForm(false);
       setEditingUser(null);
       setFormData({ name: '', email: '', password: '', phone: '', role_ids: [] });
-      fetchUsers();
+      fetchUsers(page);
     } catch (error) {
-      console.error('Ошибка сохранения:', error);
+      alert(error.response?.data?.message || 'Ошибка сохранения');
     }
   };
 
   const handleRoleChange = (roleId, isChecked) => {
     if (isChecked) {
-      setFormData({
-        ...formData,
-        role_ids: [...formData.role_ids, roleId]
-      });
+      setFormData({ ...formData, role_ids: [...formData.role_ids, roleId] });
     } else {
-      setFormData({
-        ...formData,
-        role_ids: formData.role_ids.filter(id => id !== roleId)
-      });
+      setFormData({ ...formData, role_ids: formData.role_ids.filter(id => id !== roleId) });
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading && users.length === 0) return <div>Загрузка...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
@@ -109,45 +115,21 @@ const UserManage = () => {
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '10px' }}>
               <label>Имя:</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-              />
+              <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label>Email:</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-              />
+              <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
             </div>
             {!editingUser && (
               <div style={{ marginBottom: '10px' }}>
                 <label>Пароль (минимум 8 символов):</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength="8"
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-                />
+                <input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required minLength="8" style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
               </div>
             )}
             <div style={{ marginBottom: '10px' }}>
               <label>Телефон:</label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-              />
+              <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} style={{ width: '100%', padding: '8px', marginTop: '5px' }} />
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label>Роли:</label>
@@ -155,11 +137,7 @@ const UserManage = () => {
                 {roles.map(role => (
                   <div key={role.id} style={{ marginBottom: '5px' }}>
                     <label>
-                      <input
-                        type="checkbox"
-                        checked={formData.role_ids.includes(role.id)}
-                        onChange={(e) => handleRoleChange(role.id, e.target.checked)}
-                      />
+                      <input type="checkbox" checked={formData.role_ids.includes(role.id)} onChange={(e) => handleRoleChange(role.id, e.target.checked)} />
                       {role.name}
                     </label>
                   </div>
@@ -179,39 +157,42 @@ const UserManage = () => {
       {users.length === 0 ? (
         <p>Пользователи не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Имя</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Email</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Телефон</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Роли</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(user => (
-                <tr key={user.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.name}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.email}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.phone || '-'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    {user.roles?.map(r => r.name).join(', ') || 'Нет ролей'}
-                  </td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(user)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
-                      Ред.
-                    </button>
-                    <button onClick={() => handleDelete(user.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                      Удалить
-                    </button>
-                  </td>
+        <>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa' }}>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Имя</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Email</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Телефон</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Роли</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {users.map(user => (
+                  <tr key={user.id}>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.name}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.email}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.phone || '-'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.roles?.map(r => r.name).join(', ') || 'Нет ролей'}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                      <button onClick={() => handleEdit(user)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>Ред.</button>
+                      <button onClick={() => handleDelete(user.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>Удалить</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {meta && meta.last_page > 1 && (
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
+              <span>{meta.current_page} из {meta.last_page}</span>
+              <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

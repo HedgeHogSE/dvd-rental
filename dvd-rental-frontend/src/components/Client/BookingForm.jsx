@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom'; // <-- Добавили useSearchParams
 import api from '../../services/api';
 
 const BookingForm = () => {
@@ -11,20 +11,30 @@ const BookingForm = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+  
+  const [searchParams] = useSearchParams(); // <-- Получаем параметры из URL
+  const preselectedDvdId = searchParams.get('dvd_id'); // <-- Читаем dvd_id
 
   useEffect(() => {
     fetchAvailableDVDs();
   }, []);
 
+  useEffect(() => {
+    // Если в URL был передан dvd_id, устанавливаем его в форму
+    if (preselectedDvdId && dvds.length > 0) {
+      setSelectedDvdId(preselectedDvdId);
+    }
+  }, [preselectedDvdId, dvds]);
+
   const fetchAvailableDVDs = async () => {
     try {
-      const response = await api.get('/dvds');
-      setDvds(response.data.filter(dvd => dvd.status === 'available'));
+      const response = await api.get('/dvds', { params: { status: 'available', per_page: 100 } });
+      setDvds(response.data.data);
     } catch (error) {
       setError('Ошибка загрузки DVD');
-      console.error(error);
     }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +51,14 @@ const BookingForm = () => {
       setSuccess(true);
       setTimeout(() => navigate('/bookings'), 2000);
     } catch (error) {
-      setError(error.response?.data?.message || 'Ошибка при создании бронирования');
+      // Бэкенд возвращает ошибки валидации в error.response.data.errors
+      // или общее сообщение в error.response.data.message
+      if (error.response?.data?.errors) {
+        const firstError = Object.values(error.response.data.errors)[0][0];
+        setError(firstError);
+      } else {
+        setError(error.response?.data?.message || 'Ошибка при создании бронирования');
+      }
     } finally {
       setLoading(false);
     }

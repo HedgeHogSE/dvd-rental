@@ -10,18 +10,15 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    /**
-     * Получить список всех пользователей с их ролями
-     */
-    public function index()
+    public function index(Request $request)
     {
-        // Eager loading ролей через with('roles')
-        return response()->json(User::with('roles')->get(), 200);
+        $query = User::with('roles');
+
+        $perPage = max(1, min($request->integer('per_page', 15), 100));
+
+        return response()->json($query->paginate($perPage), 200);
     }
 
-    /**
-     * Создать нового пользователя
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -40,7 +37,6 @@ class UserController extends Controller
             'phone' => $validated['phone'] ?? null,
         ]);
 
-        // Если переданы ID ролей — привязываем их
         if (!empty($validated['role_ids'])) {
             $user->roles()->sync($validated['role_ids']);
         }
@@ -51,17 +47,11 @@ class UserController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить данные конкретного пользователя с ролями
-     */
     public function show(User $user)
     {
         return response()->json($user->load('roles'), 200);
     }
 
-    /**
-     * Обновить данные пользователя
-     */
     public function update(Request $request, User $user)
     {
         $validated = $request->validate([
@@ -83,9 +73,6 @@ class UserController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить пользователя
-     */
     public function destroy(User $user)
     {
         $user->delete();
@@ -95,16 +82,12 @@ class UserController extends Controller
         ], 200);
     }
 
-    /**
-     * Назначить роль пользователю
-     */
     public function assignRole(Request $request, User $user)
     {
         $validated = $request->validate([
             'role_id' => 'required|exists:roles,id',
         ]);
 
-        // syncWithoutDetaching добавляет роль, не затирая имеющиеся
         $user->roles()->syncWithoutDetaching([$validated['role_id']]);
 
         return response()->json([
@@ -113,9 +96,6 @@ class UserController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить роль у пользователя
-     */
     public function removeRole(User $user, Role $role)
     {
         $user->roles()->detach($role->id);

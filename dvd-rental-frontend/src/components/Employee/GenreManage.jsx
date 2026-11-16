@@ -4,20 +4,28 @@ import api from '../../services/api';
 const GenreManage = () => {
   const [genres, setGenres] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingGenre, setEditingGenre] = useState(null);
   const [name, setName] = useState('');
 
-  useEffect(() => {
-    fetchGenres();
-  }, []);
+  // Пагинация
+  const [page, setPage] = useState(1);
+  const [meta, setMeta] = useState(null);
 
-  const fetchGenres = async () => {
+  useEffect(() => {
+    fetchGenres(page);
+  }, [page]);
+
+  const fetchGenres = async (currentPage = 1) => {
+    setLoading(true);
     try {
-      const response = await api.get('/genres');
-      setGenres(response.data);
+      const response = await api.get('/genres', { params: { page: currentPage, per_page: 15 } });
+      setGenres(response.data.data);
+      setMeta(response.data);
     } catch (error) {
-      console.error('Ошибка загрузки жанров:', error);
+      setError('Ошибка загрузки жанров');
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -29,7 +37,7 @@ const GenreManage = () => {
       await api.delete(`/genres/${id}`);
       setGenres(genres.filter(g => g.id !== id));
     } catch (error) {
-      console.error('Ошибка удаления:', error);
+      alert(error.response?.data?.message || 'Ошибка удаления');
     }
   };
 
@@ -50,13 +58,14 @@ const GenreManage = () => {
       setShowForm(false);
       setEditingGenre(null);
       setName('');
-      fetchGenres();
+      fetchGenres(page);
     } catch (error) {
-      console.error('Ошибка сохранения:', error);
+      alert(error.response?.data?.message || 'Ошибка сохранения');
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading && genres.length === 0) return <div>Загрузка...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div>
@@ -93,31 +102,40 @@ const GenreManage = () => {
       {genres.length === 0 ? (
         <p>Жанры не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Название</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {genres.map(genre => (
-                <tr key={genre.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{genre.name}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(genre)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
-                      Ред.
-                    </button>
-                    <button onClick={() => handleDelete(genre.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                      Удалить
-                    </button>
-                  </td>
+        <>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f8f9fa' }}>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Название</th>
+                  <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {genres.map(genre => (
+                  <tr key={genre.id}>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{genre.name}</td>
+                    <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                      <button onClick={() => handleEdit(genre)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                        Ред.
+                      </button>
+                      <button onClick={() => handleDelete(genre.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {meta && meta.last_page > 1 && (
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Назад</button>
+              <span>{meta.current_page} из {meta.last_page}</span>
+              <button disabled={page === meta.last_page} onClick={() => setPage(p => p + 1)}>Вперёд</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
