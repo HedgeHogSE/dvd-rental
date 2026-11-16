@@ -27,40 +27,40 @@ const Login = () => {
   };
 
   return (
-    <div style={{ maxWidth: '400px', margin: '50px auto' }}>
-      <h2>Вход</h2>
+    <div style={{ maxWidth: '440px', margin: '60px auto', padding: '40px', background: 'var(--card-bg)', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)' }}>
+      <h2 style={{ marginBottom: '32px', color: 'var(--text-primary)', textAlign: 'center', fontWeight: '600' }}>Вход</h2>
       <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>
             Email:
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+              style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '14px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
             />
           </label>
         </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label>
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>
             Пароль:
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+              style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', fontSize: '14px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
             />
           </label>
         </div>
-        {error && <div style={{ color: 'red', marginBottom: '15px' }}>{error}</div>}
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: '10px' }}>
+        {error && <div style={{ background: '#f8d7da', color: '#721c24', padding: '12px', borderRadius: '4px', marginBottom: '20px', border: '1px solid #f5c6cb' }}>{error}</div>}
+        <button type="submit" disabled={loading} style={{ width: '100%', padding: '12px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '15px', fontWeight: '500', cursor: 'pointer', transition: 'background 0.2s', opacity: loading ? 0.7 : 1 }}>
           {loading ? 'Вход...' : 'Войти'}
         </button>
       </form>
-      <p style={{ marginTop: '15px' }}>
-        Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+      <p style={{ marginTop: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+        Нет аккаунта? <Link to="/register" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: '500' }}>Зарегистрироваться</Link>
       </p>
     </div>
   );

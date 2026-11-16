@@ -63,27 +63,27 @@ const BlockManage = () => {
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px 0' }}>Загрузка...</div>;
 
   return (
     <div>
-      <h1>Управление блокировками</h1>
+      <h1 style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: '600' }}>Управление блокировками</h1>
       
-      <button onClick={() => setShowForm(true)} style={{ marginBottom: '20px', padding: '10px' }}>
+      <button onClick={() => setShowForm(true)} style={{ marginBottom: '24px', padding: '12px 20px', background: 'var(--danger-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
         + Заблокировать пользователя
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
-          <h3>Создать блокировку</h3>
+        <div style={{ background: 'var(--card-bg)', padding: '32px', marginBottom: '32px', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)' }}>
+          <h3 style={{ marginBottom: '24px', color: 'var(--text-primary)', fontWeight: '600' }}>Создать блокировку</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Пользователь:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Пользователь:</label>
               <select
                 value={formData.user_id}
                 onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s', background: 'var(--card-bg)' }}
               >
                 <option value="">Выберите пользователя</option>
                 {users.map(user => (
@@ -91,30 +91,30 @@ const BlockManage = () => {
                 ))}
               </select>
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Причина:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Причина:</label>
               <input
                 type="text"
                 value={formData.reason}
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Срок окончания (опционально, формат YYYY-MM-DD):</label>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Срок окончания (опционально, формат YYYY-MM-DD):</label>
               <input
                 type="date"
                 value={formData.expires_at}
                 onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s', background: 'var(--card-bg)' }}
               />
-              <small style={{ color: '#666' }}>Оставьте пустым для постоянной блокировки</small>
+              <small style={{ color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Оставьте пустым для постоянной блокировки</small>
             </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '12px 24px', background: 'var(--danger-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               Заблокировать
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '12px 24px', background: 'var(--secondary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               Отмена
             </button>
           </form>
@@ -122,30 +122,30 @@ const BlockManage = () => {
       )}
 
       {blocks.length === 0 ? (
-        <p>Активные блокировки не найдены</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px 0' }}>Активные блокировки не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg)', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Пользователь</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Причина</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Срок</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+            <thead style={{ background: 'var(--background-color)' }}>
+              <tr>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Пользователь</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Причина</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Срок</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {blocks.map(block => (
-                <tr key={block.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{block.user?.name} ({block.user?.email})</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{block.reason}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                <tr key={block.id} style={{ transition: 'background 0.2s' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{block.user?.name} ({block.user?.email})</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{block.reason}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
                     {block.expires_at 
-                      ? new Date(block.expires_at).toLocaleDateString() 
-                      : <span style={{ color: 'red' }}>Постоянная</span>}
+                      ? <span style={{ color: 'var(--text-secondary)' }}>{new Date(block.expires_at).toLocaleDateString('ru-RU')}</span>
+                      : <span style={{ color: 'var(--danger-color)', fontWeight: '600' }}>Постоянная</span>}
                   </td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleDelete(block.id)} style={{ padding: '5px 10px', background: '#28a745', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                    <button onClick={() => handleDelete(block.id)} style={{ padding: '8px 14px', background: 'var(--success-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Снять
                     </button>
                   </td>

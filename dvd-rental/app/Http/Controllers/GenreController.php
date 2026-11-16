@@ -3,29 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Genre;
+use App\Services\GenreService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class GenreController extends Controller
 {
-    /**
-     * Получить список всех жанров
-     */
+    public function __construct(
+        private GenreService $genreService
+    ) {}
+
     public function index()
     {
-        return response()->json(Genre::all(), 200);
+        $genres = $this->genreService->getAllGenres();
+
+        return response()->json($genres, 200);
     }
 
-    /**
-     * Создать новый жанр
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:genres,name',
+            'name' => 'required|string|max:255',
         ]);
 
-        $genre = Genre::create($validated);
+        $genre = $this->genreService->createGenre($validated);
 
         return response()->json([
             'message' => 'Жанр успешно создан',
@@ -33,24 +33,18 @@ class GenreController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить информацию о конкретном жанре
-     */
     public function show(Genre $genre)
     {
         return response()->json($genre, 200);
     }
 
-    /**
-     * Обновить существующий жанр
-     */
     public function update(Request $request, Genre $genre)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', Rule::unique('genres', 'name')->ignore($genre->id)],
+            'name' => 'required|string|max:255',
         ]);
 
-        $genre->update($validated);
+        $genre = $this->genreService->updateGenre($genre, $validated);
 
         return response()->json([
             'message' => 'Жанр успешно обновлен',
@@ -58,12 +52,9 @@ class GenreController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить жанр
-     */
     public function destroy(Genre $genre)
     {
-        $genre->delete();
+        $this->genreService->deleteGenre($genre);
 
         return response()->json([
             'message' => 'Жанр успешно удален',

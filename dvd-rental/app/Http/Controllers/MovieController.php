@@ -3,34 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Models\Movie;
+use App\Services\MovieService;
 use Illuminate\Http\Request;
 
 class MovieController extends Controller
 {
-    /**
-     * Получить список всех фильмов с фильтрацией и поиском
-     */
+    public function __construct(
+        private MovieService $movieService
+    ) {}
+
     public function index(Request $request)
     {
-        // Начинаем билдер запроса с eager loading жанра
-        $query = Movie::with('genre');
+        $movies = $this->movieService->getAllMovies(
+            $request->search ?? null,
+            $request->genre_id ?? null
+        );
 
-        // Поиск по названию (?search=текст)
-        if ($request->has('search') && !empty($request->search)) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-
-        // Фильтрация по genre_id (?genre_id=1)
-        if ($request->has('genre_id') && !empty($request->genre_id)) {
-            $query->where('genre_id', $request->genre_id);
-        }
-
-        return response()->json($query->get(), 200);
+        return response()->json($movies, 200);
     }
 
-    /**
-     * Создать новый фильм
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -41,7 +32,7 @@ class MovieController extends Controller
             'genre_id' => 'required|exists:genres,id',
         ]);
 
-        $movie = Movie::create($validated);
+        $movie = $this->movieService->createMovie($validated);
 
         return response()->json([
             'message' => 'Фильм успешно создан',
@@ -49,18 +40,12 @@ class MovieController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить детальную информацию о фильме
-     */
     public function show(Movie $movie)
     {
-        return response()->json($movie->load('genre'), 200);
+        return response()->json($movie->load('genre', 'dvds'), 200);
     }
 
-    /**
-     * Обновить фильм
-     */
-    public function update(Request $request, Movie $movie)
+    public function update(Request $request, $movie)
     {
         $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
@@ -70,7 +55,7 @@ class MovieController extends Controller
             'genre_id' => 'sometimes|required|exists:genres,id',
         ]);
 
-        $movie->update($validated);
+        $movie = $this->movieService->updateMovie($movie, $validated);
 
         return response()->json([
             'message' => 'Фильм успешно обновлен',
@@ -78,12 +63,9 @@ class MovieController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить фильм
-     */
-    public function destroy(Movie $movie)
+    public function destroy($movie)
     {
-        $movie->delete();
+        $this->movieService->deleteMovie($movie);
 
         return response()->json([
             'message' => 'Фильм успешно удален',

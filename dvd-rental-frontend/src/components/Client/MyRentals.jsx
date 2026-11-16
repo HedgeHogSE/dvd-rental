@@ -22,48 +22,49 @@ const MyRentals = () => {
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
-  if (error) return <div style={{ color: 'red' }}>{error}</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px 0' }}>Загрузка...</div>;
+  if (error) return <div style={{ color: 'var(--danger-color)', padding: '24px', background: '#f8d7da', borderRadius: '4px' }}>{error}</div>;
 
   return (
     <div>
-      <h1>Мои аренды</h1>
+      <h1 style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: '600' }}>Мои аренды</h1>
       
       {rentals.length === 0 ? (
-        <p>У вас нет аренд</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px 0' }}>У вас нет аренд</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg)', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>DVD</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Дата выдачи</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Дата возврата</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Стоимость</th>
+            <thead style={{ background: 'var(--background-color)' }}>
+              <tr>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>DVD</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Фильм</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Дата выдачи</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Дата возврата</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Статус</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Стоимость</th>
               </tr>
             </thead>
             <tbody>
               {rentals.map(rental => (
-                <tr key={rental.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{rental.dvd?.inventory_number}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{rental.dvd?.movie?.title}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    {rental.issued_at ? new Date(rental.issued_at).toLocaleDateString() : '-'}
+                <tr key={rental.id} style={{ transition: 'background 0.2s' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500' }}>{rental.dvd?.inventory_number}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{rental.dvd?.movie?.title}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                    {rental.issued_at ? new Date(rental.issued_at).toLocaleDateString('ru-RU') : '-'}
                   </td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    {rental.returned_at ? new Date(rental.returned_at).toLocaleDateString() : '-'}
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                    {rental.returned_at ? new Date(rental.returned_at).toLocaleDateString('ru-RU') : '-'}
                   </td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
                     <span style={{ 
-                      color: rental.status === 'active' ? 'green' : 'blue',
-                      fontWeight: 'bold'
+                      background: rental.status === 'active' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(23, 162, 184, 0.1)',
+                      color: rental.status === 'active' ? 'var(--success-color)' : 'var(--info-color)',
+                      padding: '4px 10px', borderRadius: '4px', fontWeight: '600', fontSize: '13px', border: '1px solid rgba(0,0,0,0.05)'
                     }}>
                       {rental.status === 'active' ? 'Активна' : 'Возвращена'}
                     </span>
                   </td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{rental.price} ₽</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500' }}>{rental.price} ₽</td>
                 </tr>
               ))}
             </tbody>

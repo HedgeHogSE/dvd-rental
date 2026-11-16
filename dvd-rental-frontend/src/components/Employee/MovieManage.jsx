@@ -80,41 +80,41 @@ const MovieManage = () => {
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px 0' }}>Загрузка...</div>;
 
   return (
     <div>
-      <h1>Управление фильмами</h1>
+      <h1 style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: '600' }}>Управление фильмами</h1>
       
-      <button onClick={() => { setShowForm(true); setEditingMovie(null); }} style={{ marginBottom: '20px', padding: '10px' }}>
+      <button onClick={() => { setShowForm(true); setEditingMovie(null); }} style={{ marginBottom: '24px', padding: '12px 20px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
         + Добавить фильм
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
-          <h3>{editingMovie ? 'Редактировать фильм' : 'Добавить фильм'}</h3>
+        <div style={{ background: 'var(--card-bg)', padding: '32px', marginBottom: '32px', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)' }}>
+          <h3 style={{ marginBottom: '24px', color: 'var(--text-primary)', fontWeight: '600' }}>{editingMovie ? 'Редактировать фильм' : 'Добавить фильм'}</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Название:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Название:</label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Описание:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Описание:</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                style={{ width: '100%', padding: '8px', marginTop: '5px', minHeight: '80px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', minHeight: '80px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <div style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+            <div style={{ marginBottom: '24px', display: 'flex', gap: '20px' }}>
               <div style={{ flex: 1 }}>
-                <label>Год:</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Год:</label>
                 <input
                   type="number"
                   value={formData.release_year}
@@ -122,28 +122,28 @@ const MovieManage = () => {
                   required
                   min="1888"
                   max={new Date().getFullYear() + 1}
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label>Длительность (мин):</label>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Длительность (мин):</label>
                 <input
                   type="number"
                   value={formData.duration}
                   onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
                   required
                   min="1"
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
                 />
               </div>
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Жанр:</label>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Жанр:</label>
               <select
                 value={formData.genre_id}
                 onChange={(e) => setFormData({ ...formData, genre_id: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s', background: 'var(--card-bg)' }}
               >
                 <option value="">Выберите жанр</option>
                 {genres.map(genre => (
@@ -151,10 +151,10 @@ const MovieManage = () => {
                 ))}
               </select>
             </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '12px 24px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               {editingMovie ? 'Сохранить' : 'Добавить'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '12px 24px', background: 'var(--secondary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               Отмена
             </button>
           </form>
@@ -162,31 +162,31 @@ const MovieManage = () => {
       )}
 
       {movies.length === 0 ? (
-        <p>Фильмы не найдены</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px 0' }}>Фильмы не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg)', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Название</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Жанр</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Год</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Длительность</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+            <thead style={{ background: 'var(--background-color)' }}>
+              <tr>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Название</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Жанр</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Год</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Длительность</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {movies.map(movie => (
-                <tr key={movie.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.title}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.genre?.name || '-'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.release_year}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{movie.duration} мин</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(movie)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                <tr key={movie.id} style={{ transition: 'background 0.2s' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500' }}>{movie.title}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>{movie.genre?.name || '-'}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{movie.release_year}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{movie.duration} мин</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                    <button onClick={() => handleEdit(movie)} style={{ marginRight: '5px', padding: '8px 14px', background: 'var(--warning-color)', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Ред.
                     </button>
-                    <button onClick={() => handleDelete(movie.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    <button onClick={() => handleDelete(movie.id)} style={{ padding: '8px 14px', background: 'var(--danger-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Удалить
                     </button>
                   </td>

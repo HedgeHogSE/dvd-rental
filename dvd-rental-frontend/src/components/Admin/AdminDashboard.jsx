@@ -41,35 +41,35 @@ const AdminDashboard = () => {
 
   const StatCard = ({ title, value, color }) => (
     <div style={{
-      background: '#fff',
-      padding: '20px',
+      background: 'var(--card-bg)',
+      padding: '24px 20px',
       borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+      boxShadow: '0 2px 8px var(--shadow-color)',
       textAlign: 'center'
     }}>
-      <h3 style={{ color: color, margin: '0 0 10px 0' }}>{title}</h3>
-      <p style={{ fontSize: '32px', fontWeight: 'bold', margin: 0 }}>{value}</p>
+      <h3 style={{ color: color, margin: '0 0 12px 0', fontWeight: '500', fontSize: '14px', textTransform: 'uppercase' }}>{title}</h3>
+      <p style={{ fontSize: '36px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>{value}</p>
     </div>
   );
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px 0' }}>Загрузка...</div>;
 
   return (
     <div>
-      <h1>Панель администратора</h1>
+      <h1 style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: '600' }}>Панель администратора</h1>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <StatCard title="Всего пользователей" value={stats.totalUsers} color="#007bff" />
-        <StatCard title="Всего фильмов" value={stats.totalMovies} color="#28a745" />
-        <StatCard title="Всего DVD" value={stats.totalDVDs} color="#17a2b8" />
-        <StatCard title="Активных аренд" value={stats.activeRentals} color="#ffc107" />
-        <StatCard title="Активных блокировок" value={stats.activeBlocks} color="#dc3545" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+        <StatCard title="Всего пользователей" value={stats.totalUsers} color="var(--primary-color)" />
+        <StatCard title="Всего фильмов" value={stats.totalMovies} color="var(--success-color)" />
+        <StatCard title="Всего DVD" value={stats.totalDVDs} color="var(--info-color)" />
+        <StatCard title="Активных аренд" value={stats.activeRentals} color="var(--warning-color)" />
+        <StatCard title="Активных блокировок" value={stats.activeBlocks} color="var(--danger-color)" />
       </div>
 
-      <div style={{ background: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
-        <h2>Общая информация</h2>
-        <p>Система видеопроката DVD-дисков функционирует в штатном режиме.</p>
-        <p>Администратор может управлять пользователями, ролями и блокировками через соответствующие разделы.</p>
+      <div style={{ background: 'var(--card-bg)', padding: '32px', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)' }}>
+        <h2 style={{ marginBottom: '16px', color: 'var(--text-primary)', fontWeight: '600' }}>Общая информация</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '12px' }}>Система видеопроката DVD-дисков функционирует в штатном режиме.</p>
+        <p style={{ color: 'var(--text-secondary)' }}>Администратор может управлять пользователями, ролями и блокировками через соответствующие разделы.</p>
       </div>
     </div>
   );

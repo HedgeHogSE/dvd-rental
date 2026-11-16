@@ -3,29 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Role;
+use App\Services\RoleService;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
-    /**
-     * Получить список всех ролей
-     */
+    public function __construct(
+        private RoleService $roleService
+    ) {}
+
     public function index()
     {
-        return response()->json(Role::all(), 200);
+        $roles = $this->roleService->getAllRoles();
+
+        return response()->json($roles, 200);
     }
 
-    /**
-     * Создать новую роль
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:55|unique:roles,name',
+            'name' => 'required|string|max:55',
         ]);
 
-        $role = Role::create($validated);
+        $role = $this->roleService->createRole($validated);
 
         return response()->json([
             'message' => 'Роль успешно создана',
@@ -33,25 +33,18 @@ class RoleController extends Controller
         ], 201);
     }
 
-    /**
-     * Получить информацию о конкретной роли
-     */
     public function show(Role $role)
     {
         return response()->json($role, 200);
     }
 
-    /**
-     * Обновить существующую роль
-     */
     public function update(Request $request, Role $role)
     {
         $validated = $request->validate([
-            // Исключаем текущую роль из проверки уникальности при обновлении
-            'name' => ['required', 'string', 'max:55', Rule::unique('roles', 'name')->ignore($role->id)],
+            'name' => 'required|string|max:55',
         ]);
 
-        $role->update($validated);
+        $role = $this->roleService->updateRole($role, $validated);
 
         return response()->json([
             'message' => 'Роль успешно обновлена',
@@ -59,12 +52,9 @@ class RoleController extends Controller
         ], 200);
     }
 
-    /**
-     * Удалить роль
-     */
     public function destroy(Role $role)
     {
-        $role->delete();
+        $this->roleService->deleteRole($role);
 
         return response()->json([
             'message' => 'Роль успешно удалена',

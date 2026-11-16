@@ -77,27 +77,27 @@ const DVDManage = () => {
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px 0' }}>Загрузка...</div>;
 
   return (
     <div>
-      <h1>Управление DVD</h1>
+      <h1 style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: '600' }}>Управление DVD</h1>
       
-      <button onClick={() => { setShowForm(true); setEditingDvd(null); }} style={{ marginBottom: '20px', padding: '10px' }}>
+      <button onClick={() => { setShowForm(true); setEditingDvd(null); }} style={{ marginBottom: '24px', padding: '12px 20px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
         + Добавить DVD
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
-          <h3>{editingDvd ? 'Редактировать DVD' : 'Добавить DVD'}</h3>
+        <div style={{ background: 'var(--card-bg)', padding: '32px', marginBottom: '32px', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)' }}>
+          <h3 style={{ marginBottom: '24px', color: 'var(--text-primary)', fontWeight: '600' }}>{editingDvd ? 'Редактировать DVD' : 'Добавить DVD'}</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Фильм:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Фильм:</label>
               <select
                 value={formData.movie_id}
                 onChange={(e) => setFormData({ ...formData, movie_id: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s', background: 'var(--card-bg)' }}
               >
                 <option value="">Выберите фильм</option>
                 {movies.map(movie => (
@@ -105,22 +105,22 @@ const DVDManage = () => {
                 ))}
               </select>
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Инвентарный номер:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Инвентарный номер:</label>
               <input
                 type="text"
                 value={formData.inventory_number}
                 onChange={(e) => setFormData({ ...formData, inventory_number: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Статус:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Статус:</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s', background: 'var(--card-bg)' }}
               >
                 <option value="available">Доступен</option>
                 <option value="rented">В аренде</option>
@@ -128,8 +128,8 @@ const DVDManage = () => {
                 <option value="unavailable">Недоступен</option>
               </select>
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Цена за день:</label>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Цена за день:</label>
               <input
                 type="number"
                 value={formData.price_per_day}
@@ -137,13 +137,13 @@ const DVDManage = () => {
                 required
                 min="0"
                 step="0.01"
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '12px 24px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               {editingDvd ? 'Сохранить' : 'Добавить'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '12px 24px', background: 'var(--secondary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               Отмена
             </button>
           </form>
@@ -151,31 +151,43 @@ const DVDManage = () => {
       )}
 
       {dvds.length === 0 ? (
-        <p>DVD не найдены</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px 0' }}>DVD не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg)', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Инв. номер</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Фильм</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Статус</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Цена/день</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+            <thead style={{ background: 'var(--background-color)' }}>
+              <tr>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Инв. номер</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Фильм</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Статус</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Цена/день</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {dvds.map(dvd => (
-                <tr key={dvd.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.inventory_number}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.movie?.title || '-'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.status}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{dvd.price_per_day} ₽</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(dvd)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                <tr key={dvd.id} style={{ transition: 'background 0.2s' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500' }}>{dvd.inventory_number}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{dvd.movie?.title || '-'}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                    <span style={{ 
+                      background: dvd.status === 'available' ? 'rgba(40, 167, 69, 0.1)' : 
+                                 dvd.status === 'rented' ? 'rgba(220, 53, 69, 0.1)' : 'rgba(255, 193, 7, 0.1)',
+                      color: dvd.status === 'available' ? 'var(--success-color)' : 
+                               dvd.status === 'rented' ? 'var(--danger-color)' : 'var(--warning-color)',
+                      padding: '4px 10px', borderRadius: '4px', fontWeight: '600', fontSize: '13px', border: '1px solid rgba(0,0,0,0.05)'
+                    }}>
+                      {dvd.status === 'available' ? 'Доступен' : 
+                       dvd.status === 'rented' ? 'В аренде' : 
+                       dvd.status === 'reserved' ? 'Забронирован' : 'Недоступен'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500' }}>{dvd.price_per_day} ₽</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                    <button onClick={() => handleEdit(dvd)} style={{ marginRight: '5px', padding: '8px 14px', background: 'var(--warning-color)', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Ред.
                     </button>
-                    <button onClick={() => handleDelete(dvd.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    <button onClick={() => handleDelete(dvd.id)} style={{ padding: '8px 14px', background: 'var(--danger-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Удалить
                     </button>
                   </td>

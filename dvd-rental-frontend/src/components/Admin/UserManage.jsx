@@ -93,83 +93,83 @@ const UserManage = () => {
     }
   };
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: '40px 0' }}>Загрузка...</div>;
 
   return (
     <div>
-      <h1>Управление пользователями</h1>
+      <h1 style={{ marginBottom: '32px', color: 'var(--text-primary)', fontWeight: '600' }}>Управление пользователями</h1>
       
-      <button onClick={() => { setShowForm(true); setEditingUser(null); }} style={{ marginBottom: '20px', padding: '10px' }}>
+      <button onClick={() => { setShowForm(true); setEditingUser(null); }} style={{ marginBottom: '24px', padding: '12px 20px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
         + Добавить пользователя
       </button>
 
       {showForm && (
-        <div style={{ background: '#f8f9fa', padding: '20px', marginBottom: '20px', borderRadius: '8px' }}>
-          <h3>{editingUser ? 'Редактировать пользователя' : 'Добавить пользователя'}</h3>
+        <div style={{ background: 'var(--card-bg)', padding: '32px', marginBottom: '32px', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)' }}>
+          <h3 style={{ marginBottom: '24px', color: 'var(--text-primary)', fontWeight: '600' }}>{editingUser ? 'Редактировать пользователя' : 'Добавить пользователя'}</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Имя:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Имя:</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Email:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Email:</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
             {!editingUser && (
-              <div style={{ marginBottom: '10px' }}>
-                <label>Пароль (минимум 8 символов):</label>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Пароль (минимум 8 символов):</label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   minLength="8"
-                  style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                  style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
                 />
               </div>
             )}
-            <div style={{ marginBottom: '10px' }}>
-              <label>Телефон:</label>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Телефон:</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                style={{ width: '100%', padding: '10px 12px', marginTop: '5px', border: '1px solid var(--border-color)', borderRadius: '4px', transition: 'border-color 0.2s, box-shadow 0.2s' }}
               />
             </div>
-            <div style={{ marginBottom: '10px' }}>
-              <label>Роли:</label>
-              <div>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: 'var(--text-primary)' }}>Роли:</label>
+              <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '4px' }}>
                 {roles.map(role => (
-                  <div key={role.id} style={{ marginBottom: '5px' }}>
-                    <label>
+                  <div key={role.id} style={{ marginBottom: '8px' }}>
+                    <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input
                         type="checkbox"
                         checked={formData.role_ids.includes(role.id)}
                         onChange={(e) => handleRoleChange(role.id, e.target.checked)}
                       />
-                      {role.name}
+                      <span style={{ color: 'var(--text-primary)' }}>{role.name}</span>
                     </label>
                   </div>
                 ))}
               </div>
             </div>
-            <button type="submit" style={{ padding: '10px 20px', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '12px 24px', background: 'var(--primary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               {editingUser ? 'Сохранить' : 'Добавить'}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '10px 20px', background: '#6c757d', color: '#fff', border: 'none', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: '10px', padding: '12px 24px', background: 'var(--secondary-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
               Отмена
             </button>
           </form>
@@ -177,33 +177,33 @@ const UserManage = () => {
       )}
 
       {users.length === 0 ? (
-        <p>Пользователи не найдены</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '48px 0' }}>Пользователи не найдены</p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg)', borderRadius: '8px', boxShadow: '0 2px 8px var(--shadow-color)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ background: '#f8f9fa' }}>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Имя</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Email</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Телефон</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Роли</th>
-                <th style={{ padding: '10px', borderBottom: '2px solid #ddd', textAlign: 'left' }}>Действия</th>
+            <thead style={{ background: 'var(--background-color)' }}>
+              <tr>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Имя</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Email</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Телефон</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Роли</th>
+                <th style={{ padding: '16px 12px', textAlign: 'left', borderBottom: '2px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
               {users.map(user => (
-                <tr key={user.id}>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.name}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.email}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>{user.phone || '-'}</td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
+                <tr key={user.id} style={{ transition: 'background 0.2s' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)', fontWeight: '500' }}>{user.name}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>{user.email}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>{user.phone || '-'}</td>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
                     {user.roles?.map(r => r.name).join(', ') || 'Нет ролей'}
                   </td>
-                  <td style={{ padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <button onClick={() => handleEdit(user)} style={{ marginRight: '5px', padding: '5px 10px', background: '#ffc107', border: 'none', cursor: 'pointer' }}>
+                  <td style={{ padding: '14px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                    <button onClick={() => handleEdit(user)} style={{ marginRight: '5px', padding: '8px 14px', background: 'var(--warning-color)', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Ред.
                     </button>
-                    <button onClick={() => handleDelete(user.id)} style={{ padding: '5px 10px', background: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                    <button onClick={() => handleDelete(user.id)} style={{ padding: '8px 14px', background: 'var(--danger-color)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500', transition: 'background 0.2s' }}>
                       Удалить
                     </button>
                   </td>
